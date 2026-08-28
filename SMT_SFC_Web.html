@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SMT SFC 互動流程圖</title>
+<style>
+  :root{
+    --bg:#f6f8fb; --panel:#fff; --line:#d9e2ef; --text:#1f2937; --muted:#64748b;
+    --blue:#2563eb; --purple:#7c3aed; --orange:#f59e0b; --green:#10b981; --red:#e11d48;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Microsoft JhengHei","Noto Sans TC",sans-serif;background:var(--bg);color:var(--text)}
+  .app{display:flex;flex-direction:column;height:100vh}
+  .toolbar{
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+    padding:12px 16px;background:#fff;border-bottom:1px solid #e5e7eb
+  }
+  .title{font-size:18px;font-weight:800;margin-right:6px}
+  .btns{display:flex;flex-wrap:wrap;gap:8px}
+  button{
+    border:1px solid #cfd8e3;background:#fff;color:#334155;border-radius:10px;
+    padding:8px 12px;cursor:pointer;font-size:14px
+  }
+  button:hover{background:#f8fafc}
+  button.active{background:#eaf2ff;border-color:#9ec0ff;color:#0f4ec9;font-weight:700}
+  .search{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  input{
+    width:320px;max-width:48vw;border:1px solid #cfd8e3;border-radius:10px;
+    padding:9px 12px;font-size:14px;outline:none
+  }
+  input:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(147,197,253,.25)}
+  .layout{
+    display:grid;grid-template-columns:minmax(760px,1fr) 390px;gap:12px;
+    padding:12px;height:calc(100vh - 68px)
+  }
+  .panel{background:var(--panel);border:1px solid #e5e7eb;border-radius:14px;overflow:hidden}
+  .left{display:flex;flex-direction:column}
+  .head{
+    display:flex;justify-content:space-between;align-items:center;gap:8px;
+    padding:10px 14px;border-bottom:1px solid #eef2f7;background:#fbfcfe
+  }
+  .head .h1{font-size:14px;font-weight:700;color:#334155}
+  .head .h2{font-size:12px;color:#64748b}
+  .canvas{
+    flex:1;overflow:auto;
+    background:
+      linear-gradient(#f8fafc 1px, transparent 1px),
+      linear-gradient(90deg, #f8fafc 1px, transparent 1px);
+    background-size:24px 24px;
+  }
+  #diagram{width:100%;min-width:980px;min-height:820px;display:block}
+  .right{display:flex;flex-direction:column}
+  .side-head{padding:14px 16px 10px;border-bottom:1px solid #eef2f7;background:#fbfcfe}
+  .side-head h2{margin:0 0 4px 0;font-size:16px}
+  .side-head p{margin:0;font-size:12px;color:#64748b;line-height:1.6}
+  .side-body{padding:14px 16px 20px;overflow:auto}
+  .node-name{font-size:22px;font-weight:800;margin:0 0 8px 0}
+  .desc{font-size:13px;color:#475569;line-height:1.7;margin:0 0 12px 0}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .pill{display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:#f1f5f9;color:#334155;font-size:12px}
+  .section{margin-top:14px;padding-top:14px;border-top:1px dashed #e5e7eb}
+  .section h3{margin:0 0 10px 0;font-size:13px;color:#334155}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:12px}
+  .chip.gray{background:#f1f5f9;color:#475569}
+  .chip.warn{background:#fff7ed;color:#c2410c}
+  .chip.red{background:#fff1f2;color:#be123c}
+  .muted{color:#94a3b8;font-size:12px}
+  .path{font-size:13px;line-height:1.8;color:#334155;background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:10px 12px}
+  .help{font-size:12px;color:#64748b;line-height:1.7;background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:12px}
+  @media (max-width: 1200px){
+    .layout{grid-template-columns:1fr;height:auto}
+    .right{min-height:420px}
+    input{width:220px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="toolbar">
+    <div class="title">SMT SFC 互動流程圖</div>
+    <div class="btns">
+      <button class="view-btn active" data-view="process">流程視圖</button>
+      <button class="view-btn" data-view="data">資料流視圖</button>
+      <button class="view-btn" data-view="trace">追溯視圖</button>
+      <button class="view-btn" data-view="audit">稽核視圖</button>
+      <button id="btnTraceBox">外箱反查</button>
+    </div>
+    <div class="search">
+      <input id="searchInput" type="text" placeholder="搜尋節點 / 系統 / 追溯鍵 / No.110 / Box..." />
+      <button id="btnReset">重設</button>
+      <button id="btnExport">匯出 SVG</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="panel left">
+      <div class="head">
+        <div>
+          <div class="h1" id="canvasTitle">流程視圖</div>
+          <div class="h2" id="canvasSub">顯示 SMT 從來料到出貨的主流程</div>
+        </div>
+        <div class="h2">點節點看明細；資料流視圖只顯示所選節點相鄰連線標籤</div>
+      </div>
+      <div class="canvas">
+        <svg id="diagram" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 820"></svg>
+      </div>
+    </div>
+
+    <div class="panel right">
+      <div class="side-head">
+        <h2>節點資訊</h2>
+        <p id="sideMeta">目前顯示所選節點的輸入、校驗、輸出、系統、追溯鍵與稽核關聯。</p>
+      </div>
+      <div class="side-body" id="detail"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SVG_NS = "http://www.w3.org/2000/svg";
+const BOX_W = 170, BOX_H = 76;
+
+const VIEW_META = {
+  process: { title:"流程視圖", sub:"顯示 SMT 從來料到出貨的主流程" },
+  data:    { title:"資料流視圖", sub:"只顯示所選節點相鄰連線的資料標籤，避免全圖擠在一起" },
+  trace:   { title:"追溯視圖", sub:"高亮外箱反查鏈：Box → SN → Panel → Feeder → Reel Lot → Supplier Lot" },
+  audit:   { title:"稽核視圖", sub:"高亮與稽核缺失直接相關的節點：61 / 112 / 110 / 109 / 53 / 39" }
+};
+
+const GROUP_STYLE = {
+  material:{ fill:"#EEF4FF", stroke:"#5B8DEF" },
+  process: { fill:"#F3F0FF", stroke:"#7C3AED" },
+  check:   { fill:"#FFF7E8", stroke:"#F59E0B" },
+  pack:    { fill:"#ECFDF5", stroke:"#10B981" }
+};
+
+const NODES = [
+  { id:"incoming", name:"來料", x:70, y:80, w:BOX_W, h:BOX_H, group:"material",
+    type:"Supplier / WMS", label:"Part No. / Lot / Date Code",
+    desc:"供應商來料入廠，建立料號、批次與 Date Code，是整體追溯起點。",
+    inputs:["Supplier","Part No.","Lot","Date Code","Qty"],
+    validations:["條碼格式","料號主檔","有效期"],
+    outputs:["收料記錄","來料批次"],
+    systems:["WMS","SFC"],
+    traceKeys:["Supplier Lot","Part No.","Date Code"],
+    auditRefs:[], exceptions:[]
+  },
+  { id:"iqc", name:"IQC", x:280, y:80, w:BOX_W, h:BOX_H, group:"check",
+    type:"Quality Gate", label:"IQC Result / 判定碼",
+    desc:"來料檢驗與判定，將結果與來料批次綁定。",
+    inputs:["Supplier Lot","IQC Spec","Sample Plan"],
+    validations:["抽樣規則","規格上下限"],
+    outputs:["IQC Result","退貨/特採記錄"],
+    systems:["QMS","SFC"],
+    traceKeys:["Supplier Lot","IQC Result"],
+    auditRefs:[], exceptions:["NG → 隔離 / 退貨 / 特採"]
+  },
+  { id:"inventory", name:"入庫", x:490, y:80, w:BOX_W, h:BOX_H, group:"material",
+    type:"WMS / 庫位", label:"Lot / 庫位 / Qty",
+    desc:"合格物料入庫上架，建立庫位、數量與狀態，供備料與發料。",
+    inputs:["IQC Result","Part No.","Lot","Qty"],
+    validations:["狀態=可用","庫位規則"],
+    outputs:["庫存記錄","可用庫位"],
+    systems:["WMS","SFC"],
+    traceKeys:["Part No.","Lot","Location"],
+    auditRefs:[], exceptions:[]
+  },
+  { id:"wo", name:"工單", x:700, y:80, w:BOX_W, h:BOX_H, group:"process",
+    type:"ERP / SFC", label:"WO / BOM / Route",
+    desc:"建立工單、BOM、Route 與程式版本，作為整線執行基礎。",
+    inputs:["Work Order","BOM","Route","Program Version"],
+    validations:["工單狀態","版本一致性"],
+    outputs:["工單下載","站點路由"],
+    systems:["ERP","SFC"],
+    traceKeys:["WO","BOM Ver.","Route Ver."],
+    auditRefs:[], exceptions:[]
+  },
+
+  { id:"kitting", name:"備料", x:700, y:220, w:BOX_W, h:BOX_H, group:"material",
+    type:"Kitting / 發料", label:"Pick List / Reel Lot",
+    desc:"依工單領料與備料，將實際發料批次帶入線邊。",
+    inputs:["WO","BOM","可用庫存"],
+    validations:["料號一致","FIFO / FEFO"],
+    outputs:["發料清單","Reel Lot 清單"],
+    systems:["WMS","SFC"],
+    traceKeys:["WO","Reel Lot","Issue Ticket"],
+    auditRefs:[], exceptions:[]
+  },
+  { id:"feeder", name:"飛達確認", x:490, y:220, w:BOX_W, h:BOX_H, group:"process",
+    type:"Feeder / Slot", label:"Feeder SN / Reel Lot",
+    desc:"掃描 Feeder SN、Reel Lot、站位與料號，作為上料防錯與保養控制核心。",
+    inputs:["WO","Part No.","Reel Lot","Feeder SN","Slot"],
+    validations:["BOM 比對","站位比對","PM 狀態","打擊數門檻"],
+    outputs:["Feeder 綁定記錄","上料防錯記錄"],
+    systems:["SFC","Mounter"],
+    traceKeys:["WO","Slot","Feeder SN","Reel Lot"],
+    auditRefs:["53","61"], exceptions:["PM 到期 / 打擊數超限 → 禁止上線"]
+  },
+  { id:"load", name:"投線", x:280, y:220, w:BOX_W, h:BOX_H, group:"process",
+    type:"Line In", label:"Panel ID / Board SN",
+    desc:"PCB 或 Panel 投線，建立 Panel ID 與後續過站主鍵。",
+    inputs:["WO","Line","Panel ID","Board SN"],
+    validations:["工單一致","程式版本"],
+    outputs:["投線記錄","開線狀態"],
+    systems:["SFC"],
+    traceKeys:["Panel ID","Board SN","WO"],
+    auditRefs:[], exceptions:[]
+  },
+  { id:"first", name:"首件確認", x:70, y:220, w:BOX_W, h:BOX_H, group:"check",
+    type:"First Article", label:"鋼網 / 錫膏 Lot / 首件",
+    desc:"開線前確認鋼網、錫膏、程式與首件結果，是重要放行關卡。",
+    inputs:["Stencil ID","Solder Paste Lot","Program Version","Panel ID"],
+    validations:["首件項目完整","鋼網參數","錫膏有效期"],
+    outputs:["首件結果","開線放行"],
+    systems:["SFC","QMS"],
+    traceKeys:["Stencil ID","Solder Paste Lot","FA Result"],
+    auditRefs:["39"], exceptions:["FA NG → 禁止開線"]
+  },
+
+  { id:"print", name:"印刷", x:70, y:360, w:BOX_W, h:BOX_H, group:"process",
+    type:"Printer", label:"印刷過站 / 時間戳",
+    desc:"錫膏印刷站，產生印刷過站與設備記錄。",
+    inputs:["Panel ID","Printer Program","Stencil ID"],
+    validations:["機種與程式一致"],
+    outputs:["印刷記錄","設備時間戳"],
+    systems:["Printer","SFC"],
+    traceKeys:["Panel ID","Printer Program"],
+    auditRefs:[], exceptions:[]
+  },
+  { id:"spi", name:"SPI", x:280, y:360, w:BOX_W, h:BOX_H, group:"check",
+    type:"SPI Equipment", label:"Pass/Fail / Defect Code",
+    desc:"錫膏檢測站，記錄結果、缺陷碼與設備日誌，是重要品質資料來源。",
+    inputs:["Panel ID","SPI Program","時間戳"],
+    validations:["檢測門檻","程式版本","日誌完整性"],
+    outputs:["SPI Result","Defect Code","Log Path"],
+    systems:["SPI","SFC","QMS"],
+    traceKeys:["Panel ID","SPI Result","Defect Code"],
+    auditRefs:["110"], exceptions:["SPI NG → 重印 / 複判"]
+  },
+  { id:"mount", name:"貼片", x:490, y:360, w:BOX_W, h:BOX_H, group:"process",
+    type:"Mounter", label:"Placement Data / Slot",
+    desc:"依 Feeder 綁定與機台程式進行貼片，保留機台與站位資訊。",
+    inputs:["Panel ID","WO","Feeder Binding","Mounter Program"],
+    validations:["站位一致","上料完成"],
+    outputs:["貼片記錄","機台/站位資訊"],
+    systems:["Mounter","SFC"],
+    traceKeys:["Panel ID","Machine","Slot"],
+    auditRefs:[], exceptions:[]
+  },
+  { id:"reflow", name:"回焊", x:700, y:360, w:BOX_W, h:BOX_H, group:"process",
+    type:"Reflow", label:"Recipe / 時間戳",
+    desc:"回焊站記錄設備過站與關鍵配方參數。",
+    inputs:["Panel ID","Reflow Recipe"],
+    validations:["Recipe 一致","設備狀態"],
+    outputs:["回焊過站","設備時間戳"],
+    systems:["Reflow","SFC"],
+    traceKeys:["Panel ID","Reflow Recipe"],
+    auditRefs:[], exceptions:[]
+  },
+
+  { id:"aoi", name:"AOI", x:700, y:500, w:BOX_W, h:BOX_H, group:"check",
+    type:"AOI Equipment", label:"AOI Result / 圖片索引",
+    desc:"AOI 記錄缺陷碼、結果與圖片索引，需回寫 SFC / MES 形成品質閉環。",
+    inputs:["Panel ID","Board SN","AOI Program"],
+    validations:["規則庫","程式版本","資料上傳成功"],
+    outputs:["AOI Result","Defect Code","Image Index"],
+    systems:["AOI","SFC","QMS"],
+    traceKeys:["Panel ID","Board SN","AOI Result"],
+    auditRefs:["110"], exceptions:["AOI NG → 維修 / 複判"]
+  },
+  { id:"depanel", name:"分板綁定", x:490, y:500, w:BOX_W, h:BOX_H, group:"process",
+    type:"Panel ↔ Board", label:"Parent / Child Mapping",
+    desc:"建立 Panel 與單板 1:N 關聯，確保分板後仍可反查母板位置。",
+    inputs:["Panel ID","Position No.","Board SN"],
+    validations:["母子板關聯完整","位置碼唯一"],
+    outputs:["Parent-Child Mapping"],
+    systems:["SFC"],
+    traceKeys:["Panel ID","Board SN","Position No."],
+    auditRefs:["109"], exceptions:["綁定失敗 → 禁止流轉"]
+  },
+  { id:"test", name:"測試", x:280, y:500, w:BOX_W, h:BOX_H, group:"check",
+    type:"ICT / FCT / FT", label:"Test Result / Program Ver.",
+    desc:"功能測試或電測站，回寫結果、治具與程式版本。",
+    inputs:["Board SN","Tester","Test Program"],
+    validations:["治具/程式版本","SN 合法性"],
+    outputs:["Test Result","Fail Code"],
+    systems:["Tester","SFC","QMS"],
+    traceKeys:["Board SN","Test Result","Program Ver."],
+    auditRefs:[], exceptions:["Test NG → 維修 / 重測"]
+  },
+  { id:"oqc", name:"OQC", x:70, y:500, w:BOX_W, h:BOX_H, group:"check",
+    type:"Final Release", label:"OQC Release / 判定",
+    desc:"最終出貨前放行節點，確認前段品質與追溯條件完整。",
+    inputs:["Board SN","Test Result","Repair Status"],
+    validations:["已完成測試","放行條件"],
+    outputs:["OQC Result","Release Status"],
+    systems:["QMS","SFC"],
+    traceKeys:["Board SN","OQC Result"],
+    auditRefs:[], exceptions:["OQC NG → 禁止包裝"]
+  },
+
+  { id:"innerPack", name:"內包裝", x:70, y:640, w:BOX_W, h:BOX_H, group:"pack",
+    type:"Tray / Label", label:"Inner Pack Record",
+    desc:"內包裝與標籤作業，為外箱綁定前的整包準備。",
+    inputs:["Board SN","Label Rule"],
+    validations:["標籤格式","數量規則"],
+    outputs:["Inner Pack Record"],
+    systems:["SFC"],
+    traceKeys:["Board SN","Inner Pack ID"],
+    auditRefs:[], exceptions:[]
+  },
+  { id:"box", name:"外箱綁定", x:280, y:640, w:BOX_W, h:BOX_H, group:"pack",
+    type:"Box ID ↔ SN", label:"Box ID / SN List",
+    desc:"建立 Box ID 與產品 SN / Board SN 關聯，是對外追溯的主鍵。",
+    inputs:["Box ID","SN List","Qty"],
+    validations:["工單一致性","數量完整性","SN 不重複"],
+    outputs:["Box Binding Record"],
+    systems:["SFC","ERP"],
+    traceKeys:["Box ID","Board SN","SN List"],
+    auditRefs:["112"], exceptions:["數量或 SN 不符 → 禁止封箱"]
+  },
+  { id:"pallet", name:"棧板綁定", x:490, y:640, w:BOX_W, h:BOX_H, group:"pack",
+    type:"Pallet ID ↔ Box", label:"Pallet ID / Box List",
+    desc:"建立 Pallet ID 與外箱關聯，串接出貨單位。",
+    inputs:["Pallet ID","Box ID List"],
+    validations:["箱數完整","Pallet 規則"],
+    outputs:["Pallet Binding Record"],
+    systems:["SFC","ERP"],
+    traceKeys:["Pallet ID","Box ID"],
+    auditRefs:[], exceptions:[]
+  },
+  { id:"ship", name:"出貨", x:700, y:640, w:BOX_W, h:BOX_H, group:"pack",
+    type:"Shipment / DN", label:"Shipment No. / DN",
+    desc:"出貨作業，將棧板、外箱與出貨單號串接，形成最終對客交付記錄。",
+    inputs:["Pallet ID","DN","Shipment No."],
+    validations:["出貨放行","單據完整"],
+    outputs:["Shipment Record"],
+    systems:["ERP","SFC"],
+    traceKeys:["Shipment No.","DN","Pallet ID"],
+    auditRefs:[], exceptions:[]
+  }
+];
+
+const EDGES = [
+  {from:"incoming", to:"iqc", label:"Supplier Lot / Part No."},
+  {from:"iqc", to:"inventory", label:"IQC Result"},
+  {from:"inventory", to:"wo", label:"可用庫存 / 工單"},
+  {from:"wo", to:"kitting", label:"WO / BOM / Route"},
+  {from:"kitting", to:"feeder", label:"Reel Lot"},
+  {from:"feeder", to:"load", label:"Feeder SN / Slot"},
+  {from:"load", to:"first", label:"Panel ID / SN"},
+  {from:"first", to:"print", label:"FA OK"},
+  {from:"print", to:"spi", label:"印刷結果"},
+  {from:"spi", to:"mount", label:"SPI Result"},
+  {from:"mount", to:"reflow", label:"Placement Data"},
+  {from:"reflow", to:"aoi", label:"Reflow OK"},
+  {from:"aoi", to:"depanel", label:"AOI Result"},
+  {from:"depanel", to:"test", label:"Panel ↔ Board"},
+  {from:"test", to:"oqc", label:"Test Result"},
+  {from:"oqc", to:"innerPack", label:"Release"},
+  {from:"innerPack", to:"box", label:"SN List"},
+  {from:"box", to:"pallet", label:"Box ID"},
+  {from:"pallet", to:"ship", label:"Pallet ID / DN"}
+];
+
+const TRACE_CHAIN = ["box","innerPack","oqc","test","depanel","aoi","reflow","mount","spi","print","first","load","feeder","kitting","wo","inventory","iqc","incoming"];
+
+const state = {
+  view:"process",
+  selected:"box",
+  keyword:""
+};
+
+const svg = document.getElementById("diagram");
+const detail = document.getElementById("detail");
+const input = document.getElementById("searchInput");
+const canvasTitle = document.getElementById("canvasTitle");
+const canvasSub = document.getElementById("canvasSub");
+const sideMeta = document.getElementById("sideMeta");
+
+function byId(id){ return NODES.find(n => n.id === id); }
+
+function esc(s){
+  return String(s)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#39;");
+}
+
+function svgEl(tag, attrs={}, text=null){
+  const e = document.createElementNS(SVG_NS, tag);
+  for(const [k,v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if(text !== null) e.textContent = text;
+  return e;
+}
+
+function clearSvg(){
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+}
+
+function splitLabel(str, max=16){
+  const s = String(str || "");
+  if(s.length <= max) return [s];
+  if(s.includes(" / ")){
+    const p = s.split(" / ");
+    if(p.length === 2) return p;
+  }
+  const mid = Math.ceil(s.length / 2);
+  return [s.slice(0, mid), s.slice(mid)];
+}
+
+function center(n){
+  return {x:n.x + n.w/2, y:n.y + n.h/2};
+}
+
+function edgeGeom(a,b){
+  const ac = center(a), bc = center(b);
+
+  if(a.y === b.y){
+    if(a.x < b.x){
+      return { d:`M ${a.x+a.w} ${ac.y} L ${b.x} ${bc.y}`, lx:(a.x+a.w+b.x)/2, ly:ac.y-8 };
+    } else {
+      return { d:`M ${a.x} ${ac.y} L ${b.x+b.w} ${bc.y}`, lx:(a.x+b.x+b.w)/2, ly:ac.y-8 };
+    }
+  }
+
+  if(a.x === b.x){
+    if(a.y < b.y){
+      return { d:`M ${ac.x} ${a.y+a.h} L ${bc.x} ${b.y}`, lx:ac.x+42, ly:(a.y+a.h+b.y)/2 };
+    } else {
+      return { d:`M ${ac.x} ${a.y} L ${bc.x} ${b.y+b.h}`, lx:ac.x+42, ly:(a.y+b.y+b.h)/2 };
+    }
+  }
+
+  const midY = (ac.y + bc.y)/2;
+  return { d:`M ${ac.x} ${ac.y} L ${ac.x} ${midY} L ${bc.x} ${midY} L ${bc.x} ${bc.y}`, lx:(ac.x+bc.x)/2, ly:midY-8 };
+}
+
+function makeDefs(){
+  const defs = svgEl("defs");
+  const marker = svgEl("marker", {
+    id:"arrow", viewBox:"0 0 10 10", refX:"8.5", refY:"5", markerWidth:"7", markerHeight:"7", orient:"auto-start-reverse"
+  });
+  marker.appendChild(svgEl("path", {d:"M 0 0 L 10 5 L 0 10 z", fill:"#94a3b8"}));
+  defs.appendChild(marker);
+
+  const style = svgEl("style");
+  style.textContent = `
+    .edge{fill:none;stroke:#94a3b8;stroke-width:2.4;marker-end:url(#arrow)}
+    .edge.dim{opacity:.13}
+    .edge.focus{stroke:#2563eb;stroke-width:3.2}
+    .edge.audit{stroke:#e11d48;stroke-width:3.2}
+    .edge-label{font-family:Microsoft JhengHei,Noto Sans TC,sans-serif;font-size:10px;fill:#475569;text-anchor:middle}
+    .node{cursor:pointer}
+    .node.dim{opacity:.22}
+    .node.selected rect{stroke-width:3.2}
+    .node-title{font-family:Microsoft JhengHei,Noto Sans TC,sans-serif;font-size:18px;font-weight:800;fill:#1f2937;text-anchor:middle}
+    .node-sub{font-family:Microsoft JhengHei,Noto Sans TC,sans-serif;font-size:10px;fill:#526072;text-anchor:middle}
+    .badge{font-family:Microsoft JhengHei,Noto Sans TC,sans-serif;font-size:10px;font-weight:700;fill:#fff;text-anchor:middle}
+    .legend{font-family:Microsoft JhengHei,Noto Sans TC,sans-serif;font-size:11px;fill:#64748b}
+  `;
+  defs.appendChild(style);
+  svg.appendChild(defs);
+}
+
+function matches(node, keyword){
+  if(!keyword) return true;
+  const hay = [
+    node.name, node.type, node.label, node.desc,
+    ...(node.inputs||[]), ...(node.validations||[]), ...(node.outputs||[]),
+    ...(node.systems||[]), ...(node.traceKeys||[]),
+    ...(node.auditRefs||[]), ...(node.auditRefs||[]).map(x => "No."+x)
+  ].join(" ").toLowerCase();
+  return hay.includes(keyword.toLowerCase());
+}
+
+function traceEdgeSet(){
+  const s = new Set();
+  for(let i=0;i<TRACE_CHAIN.length-1;i++){
+    s.add(`${TRACE_CHAIN[i]}->${TRACE_CHAIN[i+1]}`);
+    s.add(`${TRACE_CHAIN[i+1]}->${TRACE_CHAIN[i]}`);
+  }
+  return s;
+}
+
+function drawMultiText(parent, x, y, lines, cls, gap=13){
+  const text = svgEl("text", {x, y, class:cls});
+  lines.forEach((line, i) => {
+    text.appendChild(svgEl("tspan", {x, dy:i===0?0:gap}, line));
+  });
+  parent.appendChild(text);
+  return text;
+}
+
+function drawEdgeLabel(x, y, textStr){
+  const g = svgEl("g");
+  svg.appendChild(g);
+
+  const text = svgEl("text", {x, y, class:"edge-label"});
+  splitLabel(textStr, 16).forEach((line, i) => {
+    text.appendChild(svgEl("tspan", {x, dy:i===0?0:12}, line));
+  });
+  g.appendChild(text);
+
+  const bb = text.getBBox();
+  const bg = svgEl("rect", {
+    x:bb.x - 6, y:bb.y - 3, width:bb.width + 12, height:bb.height + 6,
+    rx:8, ry:8, fill:"#fff", stroke:"#dbeafe"
+  });
+  g.insertBefore(bg, text);
+}
+
+function drawLegend(){
+  const items = [
+    {label:"物料", color:GROUP_STYLE.material.stroke},
+    {label:"製程", color:GROUP_STYLE.process.stroke},
+    {label:"檢查/品質", color:GROUP_STYLE.check.stroke},
+    {label:"包裝/出貨", color:GROUP_STYLE.pack.stroke}
+  ];
+  const g = svgEl("g");
+  let x = 40, y = 785;
+  items.forEach(it => {
+    g.appendChild(svgEl("circle", {cx:x, cy:y, r:6, fill:it.color}));
+    g.appendChild(svgEl("text", {x:x+12, y:y+4, class:"legend"}, it.label));
+    x += 95;
+  });
+  svg.appendChild(g);
+}
+
+function draw(){
+  clearSvg();
+  makeDefs();
+
+  const vm = VIEW_META[state.view];
+  canvasTitle.textContent = vm.title;
+  canvasSub.textContent = vm.sub;
+  sideMeta.textContent =
+    state.view === "process" ? "目前顯示所選節點的輸入、校驗、輸出、系統、追溯鍵與稽核關聯。"
+    : state.view === "data" ? "資料流視圖只顯示目前所選節點的相鄰連線標籤，避免文字全部擠在一起。"
+    : state.view === "trace" ? "追溯視圖會高亮外箱反查鏈；你也可以先點其他節點再看其上下游。"
+    : "稽核視圖會高亮與 No.61 / 112 / 110 / 109 / 53 / 39 直接相關的節點。";
+
+  const traceSet = traceEdgeSet();
+
+  EDGES.forEach(edge => {
+    const a = byId(edge.from), b = byId(edge.to);
+    const g = edgeGeom(a,b);
+
+    let cls = "edge";
+    let dim = false;
+
+    if(state.view === "trace"){
+      if(traceSet.has(`${edge.from}->${edge.to}`)) cls += " focus";
+      else dim = true;
+    }
+
+    if(state.view === "audit"){
+      const hit = (a.auditRefs && a.auditRefs.length) || (b.auditRefs && b.auditRefs.length);
+      if(hit) cls += " audit";
+      else dim = true;
+    }
+
+    if(state.keyword){
+      const hit = matches(a, state.keyword) || matches(b, state.keyword) || edge.label.toLowerCase().includes(state.keyword.toLowerCase());
+      if(!hit) dim = true;
+    }
+
+    if(dim) cls += " dim";
+    svg.appendChild(svgEl("path", {d:g.d, class:cls}));
+
+    if(state.view === "data"){
+      const related = state.selected && (edge.from === state.selected || edge.to === state.selected);
+      if(related && !dim){
+        drawEdgeLabel(g.lx, g.ly, edge.label);
+      }
+    }
+  });
+
+  NODES.forEach(node => {
+    const gs = GROUP_STYLE[node.group];
+    let fill = gs.fill, stroke = gs.stroke, dim = false;
+
+    if(state.view === "trace" && !TRACE_CHAIN.includes(node.id)) dim = true;
+
+    if(state.view === "audit"){
+      if(node.auditRefs && node.auditRefs.length){
+        fill = "#FFF1F2";
+        stroke = "#E11D48";
+      } else {
+        dim = true;
+      }
+    }
+
+    if(state.keyword && !matches(node, state.keyword)) dim = true;
+
+    const g = svgEl("g", {class: node.id === state.selected ? (dim ? "node dim selected" : "node selected") : (dim ? "node dim" : "node")});
+    const rect = svgEl("rect", {
+      x:node.x, y:node.y, width:node.w, height:node.h, rx:12, ry:12, fill, stroke
+    });
+    g.appendChild(rect);
+
+    g.appendChild(svgEl("text", {
+      x:node.x + node.w/2, y:node.y + 30, class:"node-title"
+    }, node.name));
+
+    let sub = node.type;
+    if(state.view === "data") sub = node.label;
+    if(state.view === "trace" && TRACE_CHAIN.includes(node.id)) sub = `追溯鍵：${node.traceKeys[0] || "-"}`;
+    if(state.view === "audit" && node.auditRefs.length) sub = `稽核：${node.auditRefs.map(x => "No."+x).join(" / ")}`;
+
+    const lines = splitLabel(sub, 16);
+    drawMultiText(
+      g,
+      node.x + node.w/2,
+      node.y + (lines.length > 1 ? 44 : 52),
+      lines,
+      "node-sub",
+      13
+    );
+
+    if(node.auditRefs.length){
+      g.appendChild(svgEl("rect", {
+        x:node.x + node.w - 34, y:node.y - 8, width:28, height:18, rx:9, ry:9, fill:"#E11D48"
+      }));
+      g.appendChild(svgEl("text", {
+        x:node.x + node.w - 20, y:node.y + 5, class:"badge"
+      }, String(node.auditRefs.length)));
+    }
+
+    g.addEventListener("click", () => {
+      state.selected = node.id;
+      renderDetail(node);
+      draw();
+    });
+
+    svg.appendChild(g);
+  });
+
+  drawLegend();
+}
+
+function chips(arr, cls=""){
+  if(!arr || !arr.length) return `<div class="muted">無</div>`;
+  return `<div class="chips">${arr.map(v => `<span class="chip ${cls}">${esc(v)}</span>`).join("")}</div>`;
+}
+
+function upstream(id){
+  return EDGES.filter(e => e.to === id).map(e => byId(e.from)?.name).filter(Boolean);
+}
+function downstream(id){
+  return EDGES.filter(e => e.from === id).map(e => byId(e.to)?.name).filter(Boolean);
+}
+
+function traceText(id){
+  if(id === "box") return "Box ID → Product SN / Board SN → Panel ID → 工單 / 線別 / 機台 → Feeder SN → Reel Lot → Supplier Lot";
+  if(id === "feeder") return "Feeder SN → Reel Lot → 工單 / 站位 → Panel ID / SN → AOI / 測試 → OQC → 外箱";
+  if(id === "depanel") return "Panel ID ↔ Board SN ↔ Position No. → 測試 → OQC → 外箱";
+  if(id === "spi") return "Panel ID → SPI Result / Defect Code → 貼片 / AOI / 後續品質判定";
+  if(id === "aoi") return "Panel ID / Board SN → AOI Result / Defect Code → 維修 / 複判 → 測試 / OQC";
+  return "可依此節點的追溯鍵向前反查原物料，向後追蹤包裝與出貨。";
+}
+
+function renderDetail(node){
+  if(!node){
+    detail.innerHTML = `<div class="help">請點選左側節點。</div>`;
+    return;
+  }
+  const up = upstream(node.id);
+  const down = downstream(node.id);
+
+  detail.innerHTML = `
+    <div class="node-name">${esc(node.name)}</div>
+    <div class="desc">${esc(node.desc)}</div>
+
+    <div class="row">
+      <span class="pill">站點型態：${esc(node.type)}</span>
+      <span class="pill">系統：${esc(node.systems.join(" / "))}</span>
+      <span class="pill">群組：${esc(node.group)}</span>
+    </div>
+
+    <div class="section">
+      <h3>輸入資料</h3>
+      ${chips(node.inputs)}
+    </div>
+
+    <div class="section">
+      <h3>系統校驗</h3>
+      ${chips(node.validations, "warn")}
+    </div>
+
+    <div class="section">
+      <h3>輸出資料</h3>
+      ${chips(node.outputs)}
+    </div>
+
+    <div class="section">
+      <h3>追溯鍵</h3>
+      ${chips(node.traceKeys, "gray")}
+    </div>
+
+    <div class="section">
+      <h3>上下游節點</h3>
+      <div style="margin-bottom:10px;"><b>上游：</b>${up.length ? up.map(esc).join(" → ") : "無"}</div>
+      <div><b>下游：</b>${down.length ? down.map(esc).join(" → ") : "無"}</div>
+    </div>
+
+    <div class="section">
+      <h3>異常閉環</h3>
+      ${chips(node.exceptions, "red")}
+    </div>
+
+    <div class="section">
+      <h3>稽核關聯</h3>
+      ${
+        node.auditRefs.length
+          ? `<div class="chips">${node.auditRefs.map(v => `<span class="chip red">No.${esc(v)}</span>`).join("")}</div>`
+          : `<div class="muted">無直接關聯</div>`
+      }
+    </div>
+
+    <div class="section">
+      <h3>追溯展示語句</h3>
+      <div class="path">${esc(traceText(node.id))}</div>
+    </div>
+
+    <div class="section">
+      <h3>使用方式</h3>
+      <div class="help">
+        1. 流程視圖：看主流程。<br>
+        2. 資料流視圖：只顯示你目前點到節點的相鄰連線標籤。<br>
+        3. 追溯視圖：看外箱反查鏈。<br>
+        4. 稽核視圖：對照 No.61 / 112 / 110 / 109 / 53 / 39。<br>
+        5. 搜尋框可輸入：Box、AOI、Feeder、No.110、Panel ID 等。
+      </div>
+    </div>
+  `;
+}
+
+function setView(view){
+  state.view = view;
+  document.querySelectorAll(".view-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.view === view);
+  });
+  draw();
+  renderDetail(byId(state.selected));
+}
+
+function resetAll(){
+  state.view = "process";
+  state.selected = "box";
+  state.keyword = "";
+  input.value = "";
+  document.querySelectorAll(".view-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.view === "process");
+  });
+  draw();
+  renderDetail(byId("box"));
+}
+
+function exportSvg(){
+  const clone = svg.cloneNode(true);
+  clone.setAttribute("xmlns","http://www.w3.org/2000/svg");
+  clone.setAttribute("version","1.1");
+
+  const source = '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(clone);
+  const blob = new Blob([source], {type:"image/svg+xml;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `smt_sfc_${state.view}.svg`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+}
+
+document.querySelectorAll(".view-btn").forEach(btn => {
+  btn.addEventListener("click", () => setView(btn.dataset.view));
+});
+
+document.getElementById("btnTraceBox").addEventListener("click", () => {
+  state.selected = "box";
+  setView("trace");
+  renderDetail(byId("box"));
+});
+
+document.getElementById("btnReset").addEventListener("click", resetAll);
+document.getElementById("btnExport").addEventListener("click", exportSvg);
+
+input.addEventListener("input", e => {
+  state.keyword = e.target.value.trim();
+  draw();
+  renderDetail(byId(state.selected));
+});
+
+renderDetail(byId(state.selected));
+draw();
+</script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SSSTC 08 - SMT SFC 流程架構評審與 HQ 協同工作台</title>
+  
+  <!-- [ANCHOR: CSS-ENTRY] 標準模組化樣式引流 -->
+  <link rel="stylesheet" href="./assets/css/main.css?v=1.0.1" />
+  <link rel="stylesheet" href="./assets/css/canvas.css?v=1.0.1" />
+  <link rel="stylesheet" href="./assets/css/sidebar.css?v=1.0.1" />
+  <link rel="stylesheet" href="./assets/css/modal.css?v=1.0.1" />
+</head>
+<body>
+
+  <!-- [ANCHOR: DOM-NAV] 頂部全域導航列 -->
+  <header class="nav-bar">
+    <div class="nav-left">
+      <a href="../index.html" class="nav-island" title="返回首頁島">🏠</a>
+      <img id="brandLogo" class="brand-logo" src="./assets/img/wlogo_foxlink_s.png" alt="Foxlink Logo" />
+      <div class="brand-title">
+        <span>08 SMT SFC 流程協同台</span>
+        <span class="brand-tag">本地離線資料庫 (Offline DB)</span>
+      </div>
+    </div>
+
+    <div class="nav-views">
+      <button class="view-btn active" data-view="process">流程視圖</button>
+      <button class="view-btn" data-view="data">資料流視圖</button>
+      <button class="view-btn" data-view="trace">追溯視圖</button>
+      <button class="view-btn" data-view="audit">稽核視圖</button>
+    </div>
+
+    <div class="nav-right">
+      <button class="btn-icon" id="btnOpenComment">➕ 新增 HQ 審查意見</button>
+      <button class="btn-icon btn-accent" id="btnExport">📥 匯出資料庫 JSON</button>
+      <button class="btn-icon" id="btnReset">🔄 重置預設</button>
+      <button class="btn-icon" id="themeBtn" title="切換主題">🌙</button>
+    </div>
+  </header>
+
+  <!-- [ANCHOR: DOM-MAIN] 主工作區兩欄佈局 -->
+  <main class="main-layout">
+    <!-- 左側 SVG 流程畫布 -->
+    <div class="canvas-container">
+      <div class="canvas-banner">
+        <span id="viewDescription">當前視圖：顯示 SMT 從來料到包裝出貨的主流程。點擊節點可在右側編輯或填寫意見。</span>
+        <span>總節點數: 16</span>
+      </div>
+      <svg id="sfcSvg" class="svg-canvas" viewBox="0 0 960 640" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 1 L 9 5 L 0 9 z" fill="#64748b" />
+          </marker>
+          <marker id="arrow-active" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 1 L 9 5 L 0 9 z" fill="#38bdf8" />
+          </marker>
+        </defs>
+        <g id="linksGroup"></g>
+        <g id="nodesGroup"></g>
+        <g id="labelsGroup"></g>
+      </svg>
+    </div>
+
+    <!-- 右側互動抽屜 -->
+    <aside class="sidebar">
+      <div class="side-tabs">
+        <button class="side-tab-btn active" id="tabDetailBtn">節點規格定義</button>
+        <button class="side-tab-btn" id="tabCommentsBtn">HQ 審查意見 (<span id="commentCount">0</span>)</button>
+      </div>
+
+      <div class="side-content" id="sideContent">
+        <!-- 由 sidebar-view.js 動態渲染 -->
+      </div>
+    </aside>
+  </main>
+
+  <!-- [ANCHOR: DOM-MODAL] 新增審查意見彈窗 -->
+  <div class="modal-backdrop" id="commentModal">
+    <div class="modal-box">
+      <h3 style="margin-bottom:12px; font-size:16px;">➕ 新增 HQ 審查意見 / 修改建議</h3>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div>
+          <label style="font-size:12px; color:var(--text-muted);">目標節點</label>
+          <select id="modalNodeSelect"></select>
+        </div>
+        <div>
+          <label style="font-size:12px; color:var(--text-muted);">異動目標屬性</label>
+          <select id="modalFieldSelect">
+            <option value="validations">校驗關卡 (Validations)</option>
+            <option value="exceptions">防呆異常與處置 (Exceptions)</option>
+            <option value="inputs">輸入參數 (Inputs)</option>
+            <option value="outputs">輸出數據 (Outputs)</option>
+            <option value="traceKeys">追溯鍵 (TraceKeys)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px; color:var(--text-muted);">原內容 (可留空)</label>
+          <input type="text" id="modalOriginal" placeholder="例如：打擊數門檻" />
+        </div>
+        <div>
+          <label style="font-size:12px; color:var(--text-muted);">建議修改內容 / HQ 會議決議</label>
+          <textarea id="modalProposed" rows="3" placeholder="請填寫具體的修改意見，稍後將交由 AI 代理人讀取並實作..."></textarea>
+        </div>
+        <div>
+          <label style="font-size:12px; color:var(--text-muted);">提案人 / 會議單位</label>
+          <input type="text" id="modalReviewer" value="HQ_SFC_Team" />
+        </div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+        <button class="btn-icon" id="btnCancelModal">取消</button>
+        <button class="btn-icon btn-accent" id="btnSubmitModal">確認登記 (Pending_AI)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast 提示組件 -->
+  <div class="toast" id="toast"></div>
+
+  <!-- [ANCHOR: JS-SCRIPTS] 經典循序腳本載入（100% 相容 file:// 本地雙擊與 GitHub Pages） -->
+  <script src="./assets/js/data-mock.js?v=1.0.1"></script>
+  <script src="./assets/js/state.js?v=1.0.1"></script>
+  <script src="./assets/js/storage-adapter.js?v=1.0.1"></script>
+  <script src="./assets/js/svg-renderer.js?v=1.0.1"></script>
+  <script src="./assets/js/sidebar-view.js?v=1.0.1"></script>
+  <script src="./assets/js/comment-manager.js?v=1.0.1"></script>
+  <script src="./assets/js/app.js?v=1.0.1"></script>
+</body>
+</html>

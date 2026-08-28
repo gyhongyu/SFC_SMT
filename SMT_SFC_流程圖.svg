@@ -1,0 +1,214 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="210mm" height="297mm" viewBox="0 0 794 1123">
+  <defs>
+    <style>
+      .title { font-family: "Noto Sans TC","Microsoft JhengHei",sans-serif; font-size: 22px; font-weight: 700; fill: #111827; }
+      .subtitle { font-family: "Noto Sans TC","Microsoft JhengHei",sans-serif; font-size: 12px; fill: #6B7280; }
+      .step { font-family: "Noto Sans TC","Microsoft JhengHei",sans-serif; font-size: 15px; font-weight: 700; fill: #1F2937; text-anchor: middle; }
+      .sub { font-family: "Noto Sans TC","Microsoft JhengHei",sans-serif; font-size: 11px; fill: #4B5563; text-anchor: middle; }
+      .noteTitle { font-family: "Noto Sans TC","Microsoft JhengHei",sans-serif; font-size: 13px; font-weight: 700; fill: #374151; }
+      .noteText { font-family: "Noto Sans TC","Microsoft JhengHei",sans-serif; font-size: 11px; fill: #4B5563; }
+      .line { stroke: #475569; stroke-width: 2.2; fill: none; marker-end: url(#arrow); }
+      .box { rx: 10; ry: 10; stroke-width: 1.6; }
+      .normal { fill: #EEF4FF; stroke: #5B8DEF; }
+      .check { fill: #FFF7E8; stroke: #F59E0B; }
+      .pack { fill: #ECFDF5; stroke: #10B981; }
+      .rework { fill: #FEF2F2; stroke: #EF4444; stroke-width: 1.4; stroke-dasharray: 5 4; rx: 8; ry: 8; }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="794" height="1123" fill="#FFFFFF"/>
+  <rect x="18" y="18" width="758" height="1087" fill="none" stroke="#D1D5DB" stroke-width="1"/>
+
+  <text x="397" y="52" class="title" text-anchor="middle">SMT SFC 流程圖（A4 直版）</text>
+  <text x="397" y="72" class="subtitle" text-anchor="middle">從零件來料 → 製程追溯 → 外箱出貨</text>
+
+  <!-- Row 1 -->
+  <g transform="translate(60,110)">
+    <rect class="box normal" width="145" height="58"/>
+    <text x="72.5" y="25" class="step">來料</text>
+    <text x="72.5" y="43" class="sub">PCB / 零件 / 錫膏</text>
+  </g>
+
+  <g transform="translate(230,110)">
+    <rect class="box check" width="145" height="58"/>
+    <text x="72.5" y="25" class="step">IQC</text>
+    <text x="72.5" y="43" class="sub">來料檢驗</text>
+  </g>
+
+  <g transform="translate(400,110)">
+    <rect class="box normal" width="145" height="58"/>
+    <text x="72.5" y="25" class="step">入庫</text>
+    <text x="72.5" y="43" class="sub">Lot / Date Code</text>
+  </g>
+
+  <g transform="translate(570,110)">
+    <rect class="box normal" width="145" height="58"/>
+    <text x="72.5" y="25" class="step">工單</text>
+    <text x="72.5" y="43" class="sub">BOM / Route</text>
+  </g>
+
+  <!-- Row 2 -->
+  <g transform="translate(570,260)">
+    <rect class="box normal" width="145" height="58"/>
+    <text x="72.5" y="25" class="step">備料</text>
+    <text x="72.5" y="43" class="sub">Kitting / 發料</text>
+  </g>
+
+  <g transform="translate(400,260)">
+    <rect class="box normal" width="145" height="58"/>
+    <text x="72.5" y="25" class="step">飛達確認</text>
+    <text x="72.5" y="43" class="sub">Feeder SN / Reel Lot</text>
+  </g>
+
+  <g transform="translate(230,260)">
+    <rect class="box normal" width="145" height="58"/>
+    <text x="72.5" y="25" class="step">投線</text>
+    <text x="72.5" y="43" class="sub">Panel ID / Board SN</text>
+  </g>
+
+  <g transform="translate(60,260)">
+    <rect class="box check" width="145" height="58"/>
+    <text x="72.5" y="25" class="step">首件確認</text>
+    <text x="72.5" y="43" class="sub">鋼網 / 錫膏 / 程式</text>
+  </g>
+
+  <!-- Row 3 -->
+  <g transform="translate(60,410)">
+    <rect class="box normal" width="145" height="58"/>
+    <text x="72.5" y="25" class="step">印刷</text>
+    <text x="72.5" y="43" class="sub">Printer</text>
+  </g>
+
+  <g transform="translate(230,410)">
+    <rect class="box check" width="145" height="58"/>
+    <text x="72.5" y="25" class="step">SPI 檢查</text>
+    <text x="72.5" y="43" class="sub">錫膏量測</text>
+  </g>
+
+  <g transform="translate(400,410)">
+    <rect class="box normal" width="145" height="58"/>
+    <text x="72.5" y="25" class="step">貼片</text>
+    <text x="72.5" y="43" class="sub">Mounter</text>
+  </g>
+
+  <g transform="translate(570,410)">
+    <rect class="box normal" width="145" height="58"/>
+    <text x="72.5" y="25" class="step">回焊</text>
+    <text x="72.5" y="43" class="sub">Reflow</text>
+  </g>
+
+  <!-- Row 4 -->
+  <g transform="translate(570,560)">
+    <rect class="box check" width="145" height="58"/>
+    <text x="72.5" y="25" class="step">AOI 檢查</text>
+    <text x="72.5" y="43" class="sub">缺陷判定</text>
+  </g>
+
+  <g transform="translate(400,560)">
+    <rect class="box normal" width="145" height="58"/>
+    <text x="72.5" y="25" class="step">分板綁定</text>
+    <text x="72.5" y="43" class="sub">Panel ↔ Board</text>
+  </g>
+
+  <g transform="translate(230,560)">
+    <rect class="box check" width="145" height="58"/>
+    <text x="72.5" y="25" class="step">測試</text>
+    <text x="72.5" y="43" class="sub">ICT / FCT / FT</text>
+  </g>
+
+  <g transform="translate(60,560)">
+    <rect class="box check" width="145" height="58"/>
+    <text x="72.5" y="25" class="step">OQC</text>
+    <text x="72.5" y="43" class="sub">最終放行</text>
+  </g>
+
+  <!-- Row 5 -->
+  <g transform="translate(60,710)">
+    <rect class="box pack" width="145" height="58"/>
+    <text x="72.5" y="25" class="step">內包裝</text>
+    <text x="72.5" y="43" class="sub">Tray / Label</text>
+  </g>
+
+  <g transform="translate(230,710)">
+    <rect class="box pack" width="145" height="58"/>
+    <text x="72.5" y="25" class="step">外箱綁定</text>
+    <text x="72.5" y="43" class="sub">Box ID ↔ SN</text>
+  </g>
+
+  <g transform="translate(400,710)">
+    <rect class="box pack" width="145" height="58"/>
+    <text x="72.5" y="25" class="step">棧板綁定</text>
+    <text x="72.5" y="43" class="sub">Pallet ID ↔ Box ID</text>
+  </g>
+
+  <g transform="translate(570,710)">
+    <rect class="box pack" width="145" height="58"/>
+    <text x="72.5" y="25" class="step">出貨</text>
+    <text x="72.5" y="43" class="sub">Shipment / DN</text>
+  </g>
+
+  <!-- Main flow lines -->
+  <!-- Row 1 -->
+  <line class="line" x1="205" y1="139" x2="230" y2="139"/>
+  <line class="line" x1="375" y1="139" x2="400" y2="139"/>
+  <line class="line" x1="545" y1="139" x2="570" y2="139"/>
+
+  <!-- Turn 1 -->
+  <path class="line" d="M 642.5 168 L 642.5 260"/>
+
+  <!-- Row 2 (right to left) -->
+  <line class="line" x1="570" y1="289" x2="545" y2="289"/>
+  <line class="line" x1="400" y1="289" x2="375" y2="289"/>
+  <line class="line" x1="230" y1="289" x2="205" y2="289"/>
+
+  <!-- Turn 2 -->
+  <path class="line" d="M 132.5 318 L 132.5 410"/>
+
+  <!-- Row 3 -->
+  <line class="line" x1="205" y1="439" x2="230" y2="439"/>
+  <line class="line" x1="375" y1="439" x2="400" y2="439"/>
+  <line class="line" x1="545" y1="439" x2="570" y2="439"/>
+
+  <!-- Turn 3 -->
+  <path class="line" d="M 642.5 468 L 642.5 560"/>
+
+  <!-- Row 4 (right to left) -->
+  <line class="line" x1="570" y1="589" x2="545" y2="589"/>
+  <line class="line" x1="400" y1="589" x2="375" y2="589"/>
+  <line class="line" x1="230" y1="589" x2="205" y2="589"/>
+
+  <!-- Turn 4 -->
+  <path class="line" d="M 132.5 618 L 132.5 710"/>
+
+  <!-- Row 5 -->
+  <line class="line" x1="205" y1="739" x2="230" y2="739"/>
+  <line class="line" x1="375" y1="739" x2="400" y2="739"/>
+  <line class="line" x1="545" y1="739" x2="570" y2="739"/>
+
+  <!-- Rework notes -->
+  <g transform="translate(230,490)">
+    <rect class="rework" width="145" height="38"/>
+    <text x="72.5" y="23" class="sub" style="fill:#B91C1C;">SPI NG → 重印 / 複判</text>
+  </g>
+
+  <g transform="translate(570,640)">
+    <rect class="rework" width="145" height="38"/>
+    <text x="72.5" y="23" class="sub" style="fill:#B91C1C;">AOI NG → 維修 / 複判</text>
+  </g>
+
+  <!-- Footer note -->
+  <g transform="translate(50,860)">
+    <rect x="0" y="0" width="694" height="175" rx="12" ry="12" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+    <text x="20" y="28" class="noteTitle">追溯主鍵</text>
+    <text x="20" y="54" class="noteText">• 來料：Supplier / Part No. / Lot / Date Code / PCB Lot</text>
+    <text x="20" y="78" class="noteText">• 上料：工單 ↔ 機台 ↔ 站位 ↔ Feeder SN ↔ Reel Lot</text>
+    <text x="20" y="102" class="noteText">• 製程：Panel ID ↔ Board SN ↔ SPI / AOI / 測試結果</text>
+    <text x="20" y="126" class="noteText">• 包裝：Box ID ↔ Product SN / Board SN ↔ Pallet ID ↔ Shipment No.</text>
+
+    <text x="20" y="156" class="noteTitle">外箱反查鏈</text>
+    <text x="20" y="174" class="noteText">Box ID → Product SN / Board SN → Panel ID → 工單 / 線別 / 機台 → Feeder SN → Reel Lot → 供應商 Lot</text>
+  </g>
+</svg>

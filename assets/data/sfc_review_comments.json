@@ -1,0 +1,26 @@
+[
+  {
+    "commentId": "COM-20260828-001",
+    "nodeId": "feeder",
+    "nodeName": "飛達確認",
+    "targetField": "validations",
+    "originalContent": "PM 狀態 / 打擊數門檻",
+    "proposedChange": "與 HQ 討論結論：飛達打擊數達 50,000 次強制系統鎖定停線，必須刷保養卡重設方可放行。",
+    "reviewer": "HQ_SFC_Team",
+    "status": "Pending_AI",
+    "timestamp": "2026-08-28T10:10:00Z",
+    "aiCommitLog": ""
+  },
+  {
+    "commentId": "COM-20260828-002",
+    "nodeId": "solder",
+    "nodeName": "錫膏管制",
+    "targetField": "exceptions",
+    "originalContent": "超期 / 未回溫足額 → 系統鎖定禁止使用",
+    "proposedChange": "建議增加：回溫超過 24 小時未開封者，強制報廢並在 SFC 記錄報廢批號。",
+    "reviewer": "Process_Engineer",
+    "status": "Pending_AI",
+    "timestamp": "2026-08-28T10:12:00Z",
+    "aiCommitLog": ""
+  }
+]

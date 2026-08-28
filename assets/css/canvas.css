@@ -1,0 +1,90 @@
+/* [ANCHOR: CSS-CANVAS-SVG] */
+.canvas-container {
+  height: 100%;
+  overflow: auto;
+  background: radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 0);
+  background-size: 24px 24px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.canvas-banner {
+  padding: 10px 16px;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+[data-theme="light"] .canvas-banner {
+  background: rgba(248, 250, 252, 0.85);
+}
+
+.svg-canvas {
+  flex: 1;
+  min-width: 980px;
+  min-height: 680px;
+  display: block;
+}
+
+/* 節點 Box */
+.node-box {
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.node-box:hover rect {
+  stroke-width: 2.5px !important;
+  stroke: var(--accent) !important;
+  filter: drop-shadow(0 0 8px var(--accent-glow));
+}
+
+.node-box.selected rect {
+  stroke-width: 3px !important;
+  stroke: var(--accent) !important;
+  filter: drop-shadow(0 0 12px var(--accent-glow));
+}
+
+.node-box.dimmed {
+  opacity: 0.2;
+}
+
+.node-box.highlight-audit rect {
+  stroke: #ef4444 !important;
+  stroke-width: 2.5px !important;
+  animation: pulseBorder 1.5s infinite alternate;
+}
+
+.flow-link {
+  transition: stroke 0.2s ease, stroke-width 0.2s ease, opacity 0.2s ease;
+}
+
+.flow-link.dimmed {
+  opacity: 0.15;
+}
+
+.flow-link.highlight {
+  stroke: var(--accent) !important;
+  stroke-width: 3px !important;
+}
+
+@keyframes pulseBorder {
+  from { filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.4)); }
+  to { filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.8)); }
+}
+
+/* 置頂連線標籤膠囊 */
+.edge-label-group {
+  pointer-events: none;
+  user-select: none;
+}
+.edge-label-group text {
+  font-family: inherit;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
