@@ -19,8 +19,8 @@
       <a href="../index.html" class="nav-island" title="返回首頁島">🏠</a>
       <img id="brandLogo" class="brand-logo" src="./assets/img/wlogo_foxlink_s.png" alt="Foxlink Logo" />
       <div class="brand-title">
-        <span>08 SMT SFC 流程協同台</span>
-        <span class="brand-tag">本地離線資料庫 (Offline DB)</span>
+        <span id="brandTitleText">SMT SFC 流程協同台</span>
+        <span class="brand-tag" id="brandTagText">離線資料庫</span>
       </div>
     </div>
 
@@ -33,11 +33,11 @@
 
     <div class="nav-right">
       <button class="btn-icon" id="btnLang" title="切換中英文">🌐 EN</button>
-      <button class="btn-icon" id="btnOpenComment">➕ 新增 HQ 審查意見</button>
-      <button class="btn-icon btn-accent" id="btnExport">📥 匯出資料庫 JSON</button>
+      <button class="btn-icon" id="btnOpenComment">➕ 新增意見</button>
+      <button class="btn-icon btn-accent" id="btnExport">📥 匯出 JSON</button>
       <button class="btn-icon" id="btnImport">📤 匯入 JSON</button>
       <input type="file" id="importFileInput" accept=".json" style="display:none;" />
-      <button class="btn-icon" id="btnReset">🔄 重置預設</button>
+      <button class="btn-icon" id="btnReset">🔄 重置</button>
       <button class="btn-icon" id="themeBtn" title="切換主題">🌙</button>
     </div>
   </header>
@@ -48,7 +48,7 @@
     <div class="canvas-container">
       <div class="canvas-banner">
         <span id="viewDescription">當前視圖：顯示 SMT 從來料到包裝出貨的主流程。點擊節點可在右側編輯或填寫意見。</span>
-        <span>總節點數: 16</span>
+        <span id="totalNodesCanvas">總節點數: 16</span>
       </div>
       <svg id="sfcSvg" class="svg-canvas" viewBox="0 0 960 640" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -122,13 +122,13 @@
   <div class="toast" id="toast"></div>
 
   <!-- [ANCHOR: JS-SCRIPTS] 經典循序腳本載入（100% 相容 file:// 本地雙擊與 GitHub Pages） -->
-  <script src="./assets/js/data-mock.js?v=1.0.2"></script>
-  <script src="./assets/js/i18n.js?v=1.0.2"></script>
-  <script src="./assets/js/state.js?v=1.0.2"></script>
-  <script src="./assets/js/storage-adapter.js?v=1.0.2"></script>
-  <script src="./assets/js/svg-renderer.js?v=1.0.2"></script>
-  <script src="./assets/js/sidebar-view.js?v=1.0.2"></script>
-  <script src="./assets/js/comment-manager.js?v=1.0.2"></script>
-  <script src="./assets/js/app.js?v=1.0.2"></script>
+  <script src="./assets/js/data-mock.js?v=1.0.6"></script>
+  <script src="./assets/js/i18n.js?v=1.0.6"></script>
+  <script src="./assets/js/state.js?v=1.0.6"></script>
+  <script src="./assets/js/storage-adapter.js?v=1.0.6"></script>
+  <script src="./assets/js/svg-renderer.js?v=1.0.6"></script>
+  <script src="./assets/js/sidebar-view.js?v=1.0.6"></script>
+  <script src="./assets/js/comment-manager.js?v=1.0.6"></script>
+  <script src="./assets/js/app.js?v=1.0.6"></script>
 </body>
 </html>

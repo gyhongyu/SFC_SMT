@@ -17,6 +17,10 @@
   --c-check-bg: #78350f33; --c-check-border: #f59e0b; --c-check-text: #fcd34d;
   --c-pack-bg: #064e3b33; --c-pack-border: #10b981; --c-pack-text: #6ee7b7;
 
+  /* 暗色主題節點文字 (高對比亮白與亮灰) */
+  --node-sub-text: #93c5fd;
+  --node-desc-text: #cbd5e1;
+
   --status-pending: #f59e0b;
   --status-done: #10b981;
 }
@@ -26,17 +30,22 @@
   --bg-card: #ffffff;
   --bg-card-hover: #f1f5f9;
   --bg-input: #f8fafc;
-  --border: #e2e8f0;
+  --border: #cbd5e1;
   --border-focus: #0284c7;
   --text-main: #0f172a;
-  --text-muted: #64748b;
+  --text-muted: #475569;
   --accent: #0284c7;
-  --accent-glow: rgba(2, 132, 199, 0.1);
+  --accent-glow: rgba(2, 132, 199, 0.12);
 
-  --c-material-bg: #eff6ff; --c-material-border: #60a5fa; --c-material-text: #1d4ed8;
-  --c-process-bg: #faf5ff; --c-process-border: #c084fc; --c-process-text: #7e22ce;
-  --c-check-bg: #fffbeb; --c-check-border: #fbbf24; --c-check-text: #b45309;
-  --c-pack-bg: #f0fdf4; --c-pack-border: #4ade80; --c-pack-text: #15803d;
+  /* 淺色主題高對比群組色彩 */
+  --c-material-bg: #f0f7ff; --c-material-border: #3b82f6; --c-material-text: #1e40af;
+  --c-process-bg: #fbf7ff; --c-process-border: #9333ea; --c-process-text: #6b21a8;
+  --c-check-bg: #fffdf5; --c-check-border: #d97706; --c-check-text: #92400e;
+  --c-pack-bg: #f2fcf5; --c-pack-border: #16a34a; --c-pack-text: #166534;
+
+  /* 淺色主題節點文字 (高對比深色) */
+  --node-sub-text: #334155;
+  --node-desc-text: #475569;
 }
 
 /* [ANCHOR: CSS-RESET-LAYOUT] */

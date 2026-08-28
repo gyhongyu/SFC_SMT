@@ -1,5 +1,9 @@
 // [ANCHOR: JS-STORAGE-ADAPTER]
 (function() {
+  window.STORAGE_KEY_THEME = "SSSTC_08_THEME";
+  window.STORAGE_KEY_NODES = "SSSTC_08_NODES_V3";
+  window.STORAGE_KEY_COMMENTS = "SSSTC_08_COMMENTS_V3";
+
   class StorageAdapter {
     static getTheme() {
       return localStorage.getItem(window.STORAGE_KEY_THEME) || "dark";

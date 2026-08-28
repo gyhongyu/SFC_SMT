@@ -114,7 +114,7 @@
         process: isEn ? "Process View: SMT main workflow from incoming to packing." : "當前視圖：顯示 SMT 從來料到包裝出貨的主流程。點擊節點可在右側編輯或填寫意見。",
         data: isEn ? "Data Flow View: Data output & ERP/SFC communication." : "當前視圖：資料流視圖，著重於各站數據輸出與 ERP/SFC 交互。",
         trace: isEn ? "Traceability View: Trace back chain (Box → PCBA → Reel Lot → Supplier Lot)." : "當前視圖：追溯鏈視圖 (Box → PCBA → Reel Lot → Supplier Lot)。",
-        audit: isEn ? "Audit View: Quality audit focus nodes (53/61, 112, 110, 109, 39)." : "當前視圖：車規級稽核焦點視圖 (53/61 飛達, 112 錫膏, 110 鋼網, 109 爐溫, 39 包裝)。"
+        audit: isEn ? "Audit View: Quality audit focus nodes (53/61 Feeder, 112 Paste, 110 Stencil, 109 Reflow, 39 Packing)." : "當前視圖：車規級稽核焦點視圖 (53/61 飛達, 112 錫膏, 110 鋼網, 109 爐溫, 39 包裝)。"
       };
       document.getElementById("viewDescription").textContent = descMap[window.AppState.currentView] || "";
     }
@@ -131,6 +131,7 @@
       document.documentElement.setAttribute("data-theme", window.AppState.theme);
       window.StorageAdapter.setTheme(window.AppState.theme);
       this.updateThemeUI(window.AppState.theme);
+      this.render();
     }
 
     updateThemeUI(theme) {
@@ -152,16 +153,30 @@
     updateLangUI(lang) {
       const langBtn = document.getElementById("btnLang");
       if (langBtn) {
-        langBtn.textContent = lang === "zh" ? "🌐 EN" : "🌐 中文";
+        langBtn.textContent = lang === "zh" ? "🌐 繁中" : "🌐 English";
       }
       this.updateStaticI18nText();
     }
 
     updateStaticI18nText() {
       const isEn = window.AppState.lang === 'en';
+      
+      // 頂部標題
+      const titleEl = document.getElementById("brandTitleText");
+      if (titleEl) titleEl.textContent = window.i18n.t("appTitle");
+      const tagEl = document.getElementById("brandTagText");
+      if (tagEl) tagEl.textContent = window.i18n.t("offlineDb");
+
+      // 畫布統計
+      const canvasCount = document.getElementById("totalNodesCanvas");
+      if (canvasCount) canvasCount.textContent = window.i18n.t("totalNodes");
+
+      // 抽屜 Tab
       document.getElementById("tabDetailBtn").textContent = window.i18n.t("tabDetail");
       const commentCount = window.AppState.comments.filter(c => c.nodeId === window.AppState.selectedNodeId).length;
       document.getElementById("tabCommentsBtn").innerHTML = `${window.i18n.t("tabComments")} (<span id="commentCount">${commentCount}</span>)`;
+      
+      // 頂部按鈕
       document.getElementById("btnOpenComment").textContent = window.i18n.t("btnAddComment");
       document.getElementById("btnExport").textContent = window.i18n.t("btnExport");
       document.getElementById("btnImport").textContent = window.i18n.t("btnImport");
