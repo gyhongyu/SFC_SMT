@@ -9,22 +9,19 @@
       this.onSelectNode = onSelectNode;
     }
 
-    // 計算折線/直線幾何座標與端點 (避免穿入節點卡內部)
     calculateEdgeGeom(a, b) {
       const ac = { x: a.x + a.w / 2, y: a.y + a.h / 2 };
       const bc = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
 
-      // 同一水平行 (水平直連)
+      // 同一水平行
       if (a.y === b.y) {
         if (a.x < b.x) {
-          // 由左向右
           return {
             d: `M ${a.x + a.w} ${ac.y} L ${b.x - 2} ${bc.y}`,
             lx: (a.x + a.w + b.x) / 2,
             ly: ac.y
           };
         } else {
-          // 由右向左 (折返)
           return {
             d: `M ${a.x} ${ac.y} L ${b.x + b.w + 2} ${bc.y}`,
             lx: (a.x + b.x + b.w) / 2,
@@ -33,17 +30,15 @@
         }
       }
 
-      // 同一垂直列 (垂直直連)
+      // 同一垂直列
       if (a.x === b.x) {
         if (a.y < b.y) {
-          // 由上向下
           return {
             d: `M ${ac.x} ${a.y + a.h} L ${bc.x} ${b.y - 2}`,
             lx: ac.x,
             ly: (a.y + a.h + b.y) / 2
           };
         } else {
-          // 由下向上
           return {
             d: `M ${ac.x} ${a.y} L ${bc.x} ${b.y + b.h + 2}`,
             lx: ac.x,
@@ -52,7 +47,7 @@
         }
       }
 
-      // 跨行/跨列折線連接 (S 型或階梯型)
+      // 跨行/跨列折線連接
       const midY = (ac.y + bc.y) / 2;
       return {
         d: `M ${ac.x} ${a.y + a.h} L ${ac.x} ${midY} L ${bc.x} ${midY} L ${bc.x} ${b.y - 2}`,
@@ -101,9 +96,10 @@
         path.setAttribute("class", `flow-link ${isDimmed ? 'dimmed' : ''} ${isHighlight ? 'highlight' : ''}`);
         this.linksGroup.appendChild(path);
 
-        // 資料流視圖專屬：顯示連線資料流標籤 (帶氣泡膠囊背景，且置於頂層 labelsGroup)
+        // 資料流視圖專屬：顯示連線資料流標籤 (呼叫 i18n 翻譯)
         if (state.currentView === "data" && (isHighlight || !state.selectedNodeId)) {
-          this.drawEdgeLabel(geom.lx, geom.ly, link.label);
+          const translatedLabel = window.i18n.t(link.label);
+          this.drawEdgeLabel(geom.lx, geom.ly, translatedLabel);
         }
       });
 
@@ -132,14 +128,15 @@
         rect.setAttribute("stroke", groupColor.border);
         rect.setAttribute("stroke-width", "1.5");
 
-        // 標題 Text
+        // 標題 Text (呼叫 i18n 翻譯)
+        const displayName = window.i18n.t(node.name);
         const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
         title.setAttribute("x", "12");
         title.setAttribute("y", "26");
         title.setAttribute("fill", groupColor.text);
-        title.setAttribute("font-size", "14");
+        title.setAttribute("font-size", state.lang === 'en' ? "13" : "14");
         title.setAttribute("font-weight", "bold");
-        title.textContent = node.name;
+        title.textContent = displayName;
 
         // 次標題 Text
         const sub = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -166,7 +163,6 @@
       });
     }
 
-    // 繪製具備獨立高對比背景膠囊的連線標籤 (確保置頂且不被節點/連線遮擋)
     drawEdgeLabel(x, y, textStr) {
       const targetLayer = this.labelsGroup || this.nodesGroup;
 
@@ -183,9 +179,8 @@
       text.setAttribute("text-anchor", "middle");
       text.textContent = textStr;
 
-      // 膠囊底色背景
       const paddingX = 8;
-      const widthEst = textStr.length * 11 + paddingX * 2;
+      const widthEst = textStr.length * 8 + paddingX * 2;
       const heightEst = 18;
 
       const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");

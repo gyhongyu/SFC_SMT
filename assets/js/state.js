@@ -10,7 +10,8 @@
     selectedNodeId: "feeder",
     currentView: "process", // 'process' | 'data' | 'trace' | 'audit'
     activeSideTab: "detail", // 'detail' | 'comments'
-    theme: "dark"
+    theme: "dark",
+    lang: "zh" // 'zh' | 'en'
   };
 
   // 流程拓撲連線定義 (包含資料標籤與追溯鏈)

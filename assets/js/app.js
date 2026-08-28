@@ -20,10 +20,13 @@
     }
 
     async init() {
-      // 1. 初始化主題與 Logo
+      // 1. 初始化主題與語言
       window.AppState.theme = window.StorageAdapter.getTheme();
+      window.AppState.lang = window.i18n.getLang();
+
       document.documentElement.setAttribute("data-theme", window.AppState.theme);
       this.updateThemeUI(window.AppState.theme);
+      this.updateLangUI(window.AppState.lang);
 
       // 2. 載入資料
       window.AppState.nodes = await window.StorageAdapter.loadNodes();
@@ -40,6 +43,12 @@
       // 主題切換
       document.getElementById("themeBtn").onclick = () => this.toggleTheme();
 
+      // 語言切換
+      const langBtn = document.getElementById("btnLang");
+      if (langBtn) {
+        langBtn.onclick = () => this.toggleLang();
+      }
+
       // 視圖切換
       document.querySelectorAll(".view-btn").forEach(btn => {
         btn.onclick = () => this.switchView(btn.getAttribute("data-view"));
@@ -52,7 +61,7 @@
       // 頂部按鈕
       document.getElementById("btnExport").onclick = () => {
         window.CommentManager.exportDatabase(window.AppState.nodes, window.AppState.comments);
-        this.showToast("已成功匯出最新資料庫 JSON！");
+        this.showToast(window.AppState.lang === 'en' ? "Database exported successfully!" : "已成功匯出最新資料庫 JSON！");
       };
 
       // 匯入 JSON 按鈕與事件
@@ -64,7 +73,8 @@
       }
 
       document.getElementById("btnReset").onclick = () => {
-        if (confirm("確定要重置為預設資料並清除本地所有修改嗎？")) {
+        const msg = window.AppState.lang === 'en' ? "Reset to defaults and clear local changes?" : "確定要重置為預設資料並清除本地所有修改嗎？";
+        if (confirm(msg)) {
           window.StorageAdapter.resetAll();
           location.reload();
         }
@@ -81,6 +91,7 @@
       this.svgRenderer.render(window.AppState);
       this.sidebarView.render(window.AppState);
       this.updateCommentCount();
+      this.updateStaticI18nText();
     }
 
     selectNode(nodeId) {
@@ -93,14 +104,19 @@
       document.querySelectorAll(".view-btn").forEach(btn => {
         btn.classList.toggle("active", btn.getAttribute("data-view") === view);
       });
-      const descMap = {
-        process: "當前視圖：顯示 SMT 從來料到包裝出貨的主流程。點擊節點可在右側編輯或填寫意見。",
-        data: "當前視圖：資料流視圖，著重於各站數據輸出與 ERP/SFC 交互。",
-        trace: "當前視圖：追溯鏈視圖 (Box → PCBA → Reel Lot → Supplier Lot)。",
-        audit: "當前視圖：車規級稽核焦點視圖 (53/61 飛達, 112 錫膏, 110 鋼網, 109 爐溫, 39 包裝)。"
-      };
-      document.getElementById("viewDescription").textContent = descMap[view] || "";
+      this.updateViewDescription();
       this.svgRenderer.render(window.AppState);
+    }
+
+    updateViewDescription() {
+      const isEn = window.AppState.lang === 'en';
+      const descMap = {
+        process: isEn ? "Process View: SMT main workflow from incoming to packing." : "當前視圖：顯示 SMT 從來料到包裝出貨的主流程。點擊節點可在右側編輯或填寫意見。",
+        data: isEn ? "Data Flow View: Data output & ERP/SFC communication." : "當前視圖：資料流視圖，著重於各站數據輸出與 ERP/SFC 交互。",
+        trace: isEn ? "Traceability View: Trace back chain (Box → PCBA → Reel Lot → Supplier Lot)." : "當前視圖：追溯鏈視圖 (Box → PCBA → Reel Lot → Supplier Lot)。",
+        audit: isEn ? "Audit View: Quality audit focus nodes (53/61, 112, 110, 109, 39)." : "當前視圖：車規級稽核焦點視圖 (53/61 飛達, 112 錫膏, 110 鋼網, 109 爐溫, 39 包裝)。"
+      };
+      document.getElementById("viewDescription").textContent = descMap[window.AppState.currentView] || "";
     }
 
     switchSideTab(tab) {
@@ -125,8 +141,45 @@
       }
     }
 
+    toggleLang() {
+      window.AppState.lang = window.AppState.lang === "zh" ? "en" : "zh";
+      window.i18n.setLang(window.AppState.lang);
+      this.updateLangUI(window.AppState.lang);
+      this.render();
+      this.showToast(window.AppState.lang === "en" ? "Switched to English" : "已切換為繁體中文");
+    }
+
+    updateLangUI(lang) {
+      const langBtn = document.getElementById("btnLang");
+      if (langBtn) {
+        langBtn.textContent = lang === "zh" ? "🌐 EN" : "🌐 中文";
+      }
+      this.updateStaticI18nText();
+    }
+
+    updateStaticI18nText() {
+      const isEn = window.AppState.lang === 'en';
+      document.getElementById("tabDetailBtn").textContent = window.i18n.t("tabDetail");
+      const commentCount = window.AppState.comments.filter(c => c.nodeId === window.AppState.selectedNodeId).length;
+      document.getElementById("tabCommentsBtn").innerHTML = `${window.i18n.t("tabComments")} (<span id="commentCount">${commentCount}</span>)`;
+      document.getElementById("btnOpenComment").textContent = window.i18n.t("btnAddComment");
+      document.getElementById("btnExport").textContent = window.i18n.t("btnExport");
+      document.getElementById("btnImport").textContent = window.i18n.t("btnImport");
+      document.getElementById("btnReset").textContent = window.i18n.t("btnReset");
+
+      // 視圖按鈕文字
+      const vMap = { process: "viewProcess", data: "viewData", trace: "viewTrace", audit: "viewAudit" };
+      document.querySelectorAll(".view-btn").forEach(btn => {
+        const v = btn.getAttribute("data-view");
+        if (vMap[v]) btn.textContent = window.i18n.t(vMap[v]);
+      });
+
+      this.updateViewDescription();
+    }
+
     handleAddItem(nodeId, field) {
-      const val = prompt(`請輸入要新增至 [${field}] 的項目名稱：`);
+      const promptText = window.AppState.lang === 'en' ? `Enter new item for [${field}]:` : `請輸入要新增至 [${field}] 的項目名稱：`;
+      const val = prompt(promptText);
       if (!val || !val.trim()) return;
       const node = window.AppState.nodes.find(n => n.id === nodeId);
       if (!node) return;
@@ -134,7 +187,7 @@
       node[field].push(val.trim());
       window.StorageAdapter.saveNodes(window.AppState.nodes);
       this.sidebarView.render(window.AppState);
-      this.showToast(`已新增項目至 ${node.name}`);
+      this.showToast(window.AppState.lang === 'en' ? `Item added to ${node.name_en || node.name}` : `已新增項目至 ${node.name}`);
     }
 
     handleRemoveItem(nodeId, field, index) {
@@ -143,10 +196,9 @@
       node[field].splice(index, 1);
       window.StorageAdapter.saveNodes(window.AppState.nodes);
       this.sidebarView.render(window.AppState);
-      this.showToast(`已移除項目`);
+      this.showToast(window.AppState.lang === 'en' ? "Item removed" : `已移除項目`);
     }
 
-    // 處理匯入 JSON
     handleImportJSON(event) {
       const file = event.target.files && event.target.files[0];
       if (!file) return;
@@ -164,44 +216,44 @@
             window.StorageAdapter.saveComments(importedData.reviewComments);
           }
           this.render();
-          this.showToast("已成功載入外部資料庫 JSON！");
+          this.showToast(window.AppState.lang === 'en' ? "Database imported successfully!" : "已成功載入外部資料庫 JSON！");
         } catch (err) {
-          alert("匯入失敗：檔案格式不符合 JSON 規範！" + err);
+          alert("Import failed: invalid JSON! " + err);
         } finally {
-          event.target.value = ""; // 重設 input
+          event.target.value = "";
         }
       };
       reader.readAsText(file, "utf-8");
     }
 
-    // 打開新增意見 Modal
     openAddCommentModal(preselectNodeId) {
-      document.getElementById("modalTitle").textContent = "➕ 新增 HQ 審查意見 / 修改建議";
+      const isEn = window.AppState.lang === 'en';
+      document.getElementById("modalTitle").textContent = isEn ? "➕ Add HQ Review Comment" : "➕ 新增 HQ 審查意見 / 修改建議";
       document.getElementById("modalCommentId").value = "";
       const select = document.getElementById("modalNodeSelect");
-      select.innerHTML = window.AppState.nodes.map(n => `<option value="${n.id}" ${n.id === (preselectNodeId || window.AppState.selectedNodeId) ? 'selected' : ''}>${n.name} (${n.id})</option>`).join('');
+      select.innerHTML = window.AppState.nodes.map(n => `<option value="${n.id}" ${n.id === (preselectNodeId || window.AppState.selectedNodeId) ? 'selected' : ''}>${isEn ? (n.name_en || n.name) : n.name} (${n.id})</option>`).join('');
       document.getElementById("modalFieldSelect").value = "validations";
       document.getElementById("modalOriginal").value = "";
       document.getElementById("modalProposed").value = "";
       document.getElementById("modalReviewer").value = "HQ_SFC_Team";
-      document.getElementById("btnSubmitModal").textContent = "確認登記 (Pending_AI)";
+      document.getElementById("btnSubmitModal").textContent = isEn ? "Save (Pending_AI)" : "確認登記 (Pending_AI)";
       document.getElementById("commentModal").style.display = "flex";
     }
 
-    // 打開編輯意見 Modal
     openEditCommentModal(commentId) {
       const comment = window.AppState.comments.find(c => c.commentId === commentId);
       if (!comment) return;
+      const isEn = window.AppState.lang === 'en';
 
-      document.getElementById("modalTitle").textContent = "✏️ 編輯審查意見";
+      document.getElementById("modalTitle").textContent = isEn ? "✏️ Edit Review Comment" : "✏️ 編輯審查意見";
       document.getElementById("modalCommentId").value = comment.commentId;
       const select = document.getElementById("modalNodeSelect");
-      select.innerHTML = window.AppState.nodes.map(n => `<option value="${n.id}" ${n.id === comment.nodeId ? 'selected' : ''}>${n.name} (${n.id})</option>`).join('');
+      select.innerHTML = window.AppState.nodes.map(n => `<option value="${n.id}" ${n.id === comment.nodeId ? 'selected' : ''}>${isEn ? (n.name_en || n.name) : n.name} (${n.id})</option>`).join('');
       document.getElementById("modalFieldSelect").value = comment.targetField || "validations";
       document.getElementById("modalOriginal").value = comment.originalContent || "";
       document.getElementById("modalProposed").value = comment.proposedChange || "";
       document.getElementById("modalReviewer").value = comment.reviewer || "HQ_SFC_Team";
-      document.getElementById("btnSubmitModal").textContent = "儲存修改";
+      document.getElementById("btnSubmitModal").textContent = isEn ? "Update Comment" : "儲存修改";
       document.getElementById("commentModal").style.display = "flex";
     }
 
@@ -209,7 +261,6 @@
       document.getElementById("commentModal").style.display = "none";
     }
 
-    // 提交意見 (新增或更新)
     submitComment() {
       const commentId = document.getElementById("modalCommentId").value;
       const nodeId = document.getElementById("modalNodeSelect").value;
@@ -219,7 +270,7 @@
       const reviewer = document.getElementById("modalReviewer").value.trim() || "HQ_SFC_Team";
 
       if (!proposed) {
-        alert("請填寫具體建議修改內容！");
+        alert(window.AppState.lang === 'en' ? "Please enter proposed change description!" : "請填寫具體建議修改內容！");
         return;
       }
 
@@ -227,7 +278,6 @@
       const nodeName = node ? node.name : nodeId;
 
       if (commentId) {
-        // 編輯模式
         const target = window.AppState.comments.find(c => c.commentId === commentId);
         if (target) {
           target.nodeId = nodeId;
@@ -238,9 +288,8 @@
           target.reviewer = reviewer;
           target.timestamp = new Date().toISOString();
         }
-        this.showToast("審查意見已成功修改！");
+        this.showToast(window.AppState.lang === 'en' ? "Comment updated successfully!" : "審查意見已成功修改！");
       } else {
-        // 新增模式
         const newComment = window.CommentManager.createComment({
           nodeId,
           nodeName,
@@ -250,7 +299,7 @@
           reviewer
         });
         window.AppState.comments.unshift(newComment);
-        this.showToast("HQ 審查意見已登記 (Pending_AI)");
+        this.showToast(window.AppState.lang === 'en' ? "Comment registered (Pending_AI)" : "HQ 審查意見已登記 (Pending_AI)");
       }
 
       window.StorageAdapter.saveComments(window.AppState.comments);
@@ -259,22 +308,22 @@
       this.render();
     }
 
-    // 刪除意見
     handleDeleteComment(commentId) {
-      if (!confirm("確定要刪除這條審查意見嗎？")) return;
+      const confirmMsg = window.AppState.lang === 'en' ? "Are you sure you want to delete this comment?" : "確定要刪除這條審查意見嗎？";
+      if (!confirm(confirmMsg)) return;
       const index = window.AppState.comments.findIndex(c => c.commentId === commentId);
       if (index !== -1) {
         window.AppState.comments.splice(index, 1);
         window.StorageAdapter.saveComments(window.AppState.comments);
         this.render();
-        this.showToast("審查意見已刪除");
+        this.showToast(window.AppState.lang === 'en' ? "Comment deleted" : "審查意見已刪除");
       }
     }
 
-    // 更新 Tab 上顯示的「當前節點專屬意見數」
     updateCommentCount() {
       const currentNodeComments = window.AppState.comments.filter(c => c.nodeId === window.AppState.selectedNodeId);
-      document.getElementById("commentCount").textContent = currentNodeComments.length;
+      const badge = document.getElementById("commentCount");
+      if (badge) badge.textContent = currentNodeComments.length;
     }
 
     showToast(msg) {
@@ -285,7 +334,6 @@
     }
   }
 
-  // 啟動應用
   window.addEventListener("DOMContentLoaded", () => {
     const app = new App();
     app.init();
