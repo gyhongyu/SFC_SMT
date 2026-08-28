@@ -28,15 +28,23 @@
       this.updateThemeUI(window.AppState.theme);
       this.updateLangUI(window.AppState.lang);
 
-      // 2. 載入資料
+      // 2. 監聽背景雲端同步狀態 (Sync Status Badge)
+      if (window.SyncQueueEngine) {
+        window.SyncQueueEngine.onStatusChange((pendingCount) => {
+          this.updateSyncBadge(pendingCount);
+        });
+      }
+
+      // 3. 載入資料 (優先讀取 0ms 快取，背景自 Google Sheets 靜默校準)
       window.AppState.nodes = await window.StorageAdapter.loadNodes();
       window.AppState.comments = await window.StorageAdapter.loadComments();
 
-      // 3. 綁定全域 UI 事件
+      // 4. 綁定全域 UI 事件
       this.bindEvents();
 
-      // 4. 初次渲染
+      // 5. 初次渲染
       this.render();
+      this.updateSyncBadge(0);
     }
 
     bindEvents() {
@@ -58,10 +66,10 @@
       document.getElementById("tabDetailBtn").onclick = () => this.switchSideTab("detail");
       document.getElementById("tabCommentsBtn").onclick = () => this.switchSideTab("comments");
 
-      // 頂部按鈕
+      // 頂部按鈕 - 備份與手動匯出
       document.getElementById("btnExport").onclick = () => {
         window.CommentManager.exportDatabase(window.AppState.nodes, window.AppState.comments);
-        this.showToast(window.AppState.lang === 'en' ? "Database exported successfully!" : "已成功匯出最新資料庫 JSON！");
+        this.showToast(window.AppState.lang === 'en' ? "Database exported successfully!" : "已成功匯出最新資料庫備份 JSON！");
       };
 
       // 匯入 JSON 按鈕與事件
@@ -72,6 +80,7 @@
         fileInput.onchange = (e) => this.handleImportJSON(e);
       }
 
+      // 重置按鈕
       document.getElementById("btnReset").onclick = () => {
         const msg = window.AppState.lang === 'en' ? "Reset to defaults and clear local changes?" : "確定要重置為預設資料並清除本地所有修改嗎？";
         if (confirm(msg)) {
@@ -85,6 +94,24 @@
       // Modal 內部按鈕
       document.getElementById("btnCancelModal").onclick = () => this.closeAddCommentModal();
       document.getElementById("btnSubmitModal").onclick = () => this.submitComment();
+    }
+
+    updateSyncBadge(pendingCount) {
+      const badge = document.getElementById("brandTagText");
+      if (!badge) return;
+      const isEn = window.AppState.lang === 'en';
+
+      if (pendingCount > 0) {
+        badge.textContent = isEn ? `🟡 Syncing (${pendingCount})` : `🟡 雲端同步中 (${pendingCount})`;
+        badge.style.background = "#f59e0b22";
+        badge.style.borderColor = "#f59e0b";
+        badge.style.color = "#fbbf24";
+      } else {
+        badge.textContent = isEn ? "🟢 Cloud Synced" : "🟢 雲端已同步";
+        badge.style.background = "#10b98122";
+        badge.style.borderColor = "#10b981";
+        badge.style.color = "#34d399";
+      }
     }
 
     render() {
@@ -164,8 +191,6 @@
       // 頂部標題
       const titleEl = document.getElementById("brandTitleText");
       if (titleEl) titleEl.textContent = window.i18n.t("appTitle");
-      const tagEl = document.getElementById("brandTagText");
-      if (tagEl) tagEl.textContent = window.i18n.t("offlineDb");
 
       // 畫布統計
       const canvasCount = document.getElementById("totalNodesCanvas");
@@ -178,8 +203,8 @@
       
       // 頂部按鈕
       document.getElementById("btnOpenComment").textContent = window.i18n.t("btnAddComment");
-      document.getElementById("btnExport").textContent = window.i18n.t("btnExport");
-      document.getElementById("btnImport").textContent = window.i18n.t("btnImport");
+      document.getElementById("btnExport").textContent = isEn ? "📥 Export Backup" : "📥 匯出備份";
+      document.getElementById("btnImport").textContent = isEn ? "📤 Import Backup" : "📤 匯入備份";
       document.getElementById("btnReset").textContent = window.i18n.t("btnReset");
 
       // 視圖按鈕文字
@@ -200,18 +225,26 @@
       if (!node) return;
       if (!node[field]) node[field] = [];
       node[field].push(val.trim());
+      
+      // 本地 0ms 存檔 + 背景自動非同步同步至 Google Sheets
       window.StorageAdapter.saveNodes(window.AppState.nodes);
+      window.StorageAdapter.syncNodeToCloud(node);
+
       this.sidebarView.render(window.AppState);
-      this.showToast(window.AppState.lang === 'en' ? `Item added to ${node.name_en || node.name}` : `已新增項目至 ${node.name}`);
+      this.showToast(window.AppState.lang === 'en' ? `Item added & synced!` : `已新增並自動同步至雲端！`);
     }
 
     handleRemoveItem(nodeId, field, index) {
       const node = window.AppState.nodes.find(n => n.id === nodeId);
       if (!node || !node[field]) return;
       node[field].splice(index, 1);
+
+      // 本地 0ms 存檔 + 背景自動非同步同步至 Google Sheets
       window.StorageAdapter.saveNodes(window.AppState.nodes);
+      window.StorageAdapter.syncNodeToCloud(node);
+
       this.sidebarView.render(window.AppState);
-      this.showToast(window.AppState.lang === 'en' ? "Item removed" : `已移除項目`);
+      this.showToast(window.AppState.lang === 'en' ? "Item removed & synced" : `已移除並自動同步至雲端`);
     }
 
     handleImportJSON(event) {
@@ -225,13 +258,15 @@
           if (importedData.nodes && Array.isArray(importedData.nodes)) {
             window.AppState.nodes = importedData.nodes;
             window.StorageAdapter.saveNodes(importedData.nodes);
+            importedData.nodes.forEach(n => window.StorageAdapter.syncNodeToCloud(n));
           }
           if (importedData.reviewComments && Array.isArray(importedData.reviewComments)) {
             window.AppState.comments = importedData.reviewComments;
             window.StorageAdapter.saveComments(importedData.reviewComments);
+            importedData.reviewComments.forEach(c => window.StorageAdapter.appendCommentToCloud(c));
           }
           this.render();
-          this.showToast(window.AppState.lang === 'en' ? "Database imported successfully!" : "已成功載入外部資料庫 JSON！");
+          this.showToast(window.AppState.lang === 'en' ? "Backup loaded & syncing to cloud!" : "已成功載入外部備份並同步至雲端！");
         } catch (err) {
           alert("Import failed: invalid JSON! " + err);
         } finally {
@@ -302,8 +337,11 @@
           target.proposedChange = proposed;
           target.reviewer = reviewer;
           target.timestamp = new Date().toISOString();
+          
+          window.StorageAdapter.saveComments(window.AppState.comments);
+          window.StorageAdapter.updateCommentToCloud(target);
         }
-        this.showToast(window.AppState.lang === 'en' ? "Comment updated successfully!" : "審查意見已成功修改！");
+        this.showToast(window.AppState.lang === 'en' ? "Comment updated & synced to cloud!" : "審查意見已修改並同步至雲端！");
       } else {
         const newComment = window.CommentManager.createComment({
           nodeId,
@@ -314,10 +352,11 @@
           reviewer
         });
         window.AppState.comments.unshift(newComment);
-        this.showToast(window.AppState.lang === 'en' ? "Comment registered (Pending_AI)" : "HQ 審查意見已登記 (Pending_AI)");
+        window.StorageAdapter.saveComments(window.AppState.comments);
+        window.StorageAdapter.appendCommentToCloud(newComment);
+        this.showToast(window.AppState.lang === 'en' ? "Comment registered & syncing to cloud!" : "HQ 審查意見已登記並同步至雲端！");
       }
 
-      window.StorageAdapter.saveComments(window.AppState.comments);
       this.closeAddCommentModal();
       this.switchSideTab("comments");
       this.render();
@@ -330,8 +369,9 @@
       if (index !== -1) {
         window.AppState.comments.splice(index, 1);
         window.StorageAdapter.saveComments(window.AppState.comments);
+        window.StorageAdapter.deleteCommentFromCloud(commentId);
         this.render();
-        this.showToast(window.AppState.lang === 'en' ? "Comment deleted" : "審查意見已刪除");
+        this.showToast(window.AppState.lang === 'en' ? "Comment deleted & cloud synced" : "審查意見已刪除並同步至雲端");
       }
     }
 
