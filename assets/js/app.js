@@ -12,7 +12,9 @@
         {
           onAddItem: (nodeId, field) => this.handleAddItem(nodeId, field),
           onRemoveItem: (nodeId, field, index) => this.handleRemoveItem(nodeId, field, index),
-          onOpenCommentModal: (nodeId) => this.openAddCommentModal(nodeId)
+          onOpenCommentModal: (nodeId) => this.openAddCommentModal(nodeId),
+          onEditComment: (commentId) => this.openEditCommentModal(commentId),
+          onDeleteComment: (commentId) => this.handleDeleteComment(commentId)
         }
       );
     }
@@ -53,6 +55,14 @@
         this.showToast("已成功匯出最新資料庫 JSON！");
       };
 
+      // 匯入 JSON 按鈕與事件
+      const importBtn = document.getElementById("btnImport");
+      const fileInput = document.getElementById("importFileInput");
+      if (importBtn && fileInput) {
+        importBtn.onclick = () => fileInput.click();
+        fileInput.onchange = (e) => this.handleImportJSON(e);
+      }
+
       document.getElementById("btnReset").onclick = () => {
         if (confirm("確定要重置為預設資料並清除本地所有修改嗎？")) {
           window.StorageAdapter.resetAll();
@@ -64,7 +74,7 @@
 
       // Modal 內部按鈕
       document.getElementById("btnCancelModal").onclick = () => this.closeAddCommentModal();
-      document.getElementById("btnSubmitModal").onclick = () => this.submitNewComment();
+      document.getElementById("btnSubmitModal").onclick = () => this.submitComment();
     }
 
     render() {
@@ -136,9 +146,62 @@
       this.showToast(`已移除項目`);
     }
 
+    // 處理匯入 JSON
+    handleImportJSON(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const importedData = JSON.parse(e.target.result);
+          if (importedData.nodes && Array.isArray(importedData.nodes)) {
+            window.AppState.nodes = importedData.nodes;
+            window.StorageAdapter.saveNodes(importedData.nodes);
+          }
+          if (importedData.reviewComments && Array.isArray(importedData.reviewComments)) {
+            window.AppState.comments = importedData.reviewComments;
+            window.StorageAdapter.saveComments(importedData.reviewComments);
+          }
+          this.render();
+          this.showToast("已成功載入外部資料庫 JSON！");
+        } catch (err) {
+          alert("匯入失敗：檔案格式不符合 JSON 規範！" + err);
+        } finally {
+          event.target.value = ""; // 重設 input
+        }
+      };
+      reader.readAsText(file, "utf-8");
+    }
+
+    // 打開新增意見 Modal
     openAddCommentModal(preselectNodeId) {
+      document.getElementById("modalTitle").textContent = "➕ 新增 HQ 審查意見 / 修改建議";
+      document.getElementById("modalCommentId").value = "";
       const select = document.getElementById("modalNodeSelect");
       select.innerHTML = window.AppState.nodes.map(n => `<option value="${n.id}" ${n.id === (preselectNodeId || window.AppState.selectedNodeId) ? 'selected' : ''}>${n.name} (${n.id})</option>`).join('');
+      document.getElementById("modalFieldSelect").value = "validations";
+      document.getElementById("modalOriginal").value = "";
+      document.getElementById("modalProposed").value = "";
+      document.getElementById("modalReviewer").value = "HQ_SFC_Team";
+      document.getElementById("btnSubmitModal").textContent = "確認登記 (Pending_AI)";
+      document.getElementById("commentModal").style.display = "flex";
+    }
+
+    // 打開編輯意見 Modal
+    openEditCommentModal(commentId) {
+      const comment = window.AppState.comments.find(c => c.commentId === commentId);
+      if (!comment) return;
+
+      document.getElementById("modalTitle").textContent = "✏️ 編輯審查意見";
+      document.getElementById("modalCommentId").value = comment.commentId;
+      const select = document.getElementById("modalNodeSelect");
+      select.innerHTML = window.AppState.nodes.map(n => `<option value="${n.id}" ${n.id === comment.nodeId ? 'selected' : ''}>${n.name} (${n.id})</option>`).join('');
+      document.getElementById("modalFieldSelect").value = comment.targetField || "validations";
+      document.getElementById("modalOriginal").value = comment.originalContent || "";
+      document.getElementById("modalProposed").value = comment.proposedChange || "";
+      document.getElementById("modalReviewer").value = comment.reviewer || "HQ_SFC_Team";
+      document.getElementById("btnSubmitModal").textContent = "儲存修改";
       document.getElementById("commentModal").style.display = "flex";
     }
 
@@ -146,7 +209,9 @@
       document.getElementById("commentModal").style.display = "none";
     }
 
-    submitNewComment() {
+    // 提交意見 (新增或更新)
+    submitComment() {
+      const commentId = document.getElementById("modalCommentId").value;
       const nodeId = document.getElementById("modalNodeSelect").value;
       const field = document.getElementById("modalFieldSelect").value;
       const original = document.getElementById("modalOriginal").value.trim();
@@ -159,24 +224,57 @@
       }
 
       const node = window.AppState.nodes.find(n => n.id === nodeId);
-      const newComment = window.CommentManager.createComment({
-        nodeId,
-        nodeName: node ? node.name : nodeId,
-        targetField: field,
-        originalContent: original,
-        proposedChange: proposed,
-        reviewer
-      });
+      const nodeName = node ? node.name : nodeId;
 
-      window.AppState.comments.unshift(newComment);
+      if (commentId) {
+        // 編輯模式
+        const target = window.AppState.comments.find(c => c.commentId === commentId);
+        if (target) {
+          target.nodeId = nodeId;
+          target.nodeName = nodeName;
+          target.targetField = field;
+          target.originalContent = original;
+          target.proposedChange = proposed;
+          target.reviewer = reviewer;
+          target.timestamp = new Date().toISOString();
+        }
+        this.showToast("審查意見已成功修改！");
+      } else {
+        // 新增模式
+        const newComment = window.CommentManager.createComment({
+          nodeId,
+          nodeName,
+          targetField: field,
+          originalContent: original,
+          proposedChange: proposed,
+          reviewer
+        });
+        window.AppState.comments.unshift(newComment);
+        this.showToast("HQ 審查意見已登記 (Pending_AI)");
+      }
+
       window.StorageAdapter.saveComments(window.AppState.comments);
       this.closeAddCommentModal();
       this.switchSideTab("comments");
-      this.showToast("HQ 審查意見已登記 (Pending_AI)");
+      this.render();
     }
 
+    // 刪除意見
+    handleDeleteComment(commentId) {
+      if (!confirm("確定要刪除這條審查意見嗎？")) return;
+      const index = window.AppState.comments.findIndex(c => c.commentId === commentId);
+      if (index !== -1) {
+        window.AppState.comments.splice(index, 1);
+        window.StorageAdapter.saveComments(window.AppState.comments);
+        this.render();
+        this.showToast("審查意見已刪除");
+      }
+    }
+
+    // 更新 Tab 上顯示的「當前節點專屬意見數」
     updateCommentCount() {
-      document.getElementById("commentCount").textContent = window.AppState.comments.length;
+      const currentNodeComments = window.AppState.comments.filter(c => c.nodeId === window.AppState.selectedNodeId);
+      document.getElementById("commentCount").textContent = currentNodeComments.length;
     }
 
     showToast(msg) {

@@ -140,3 +140,22 @@
   line-height: 1.5;
   color: var(--text-main);
 }
+
+.comment-action-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  opacity: 0.65;
+  padding: 2px;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+.comment-action-btn:hover {
+  opacity: 1;
+  background: var(--bg-card);
+  transform: scale(1.15);
+}
+.comment-action-btn.del:hover {
+  filter: hue-rotate(180deg);
+}

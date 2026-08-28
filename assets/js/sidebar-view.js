@@ -3,7 +3,7 @@
   class SidebarView {
     constructor(containerElement, callbacks) {
       this.container = containerElement;
-      this.callbacks = callbacks; // { onAddItem, onRemoveItem, onOpenCommentModal }
+      this.callbacks = callbacks; // { onAddItem, onRemoveItem, onOpenCommentModal, onEditComment, onDeleteComment }
     }
 
     render(state) {
@@ -119,18 +119,27 @@
 
     renderCommentsTab(node, comments) {
       const nodeComments = comments.filter(c => c.nodeId === node.id);
+      const totalCommentsCount = comments.length;
+
       this.container.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <h3 style="font-size:14px;">與 HQ 審查意見 (${node.name})</h3>
+          <div>
+            <h3 style="font-size:14px; font-weight:700;">與 HQ 審查意見 (${node.name})</h3>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">本節點 ${nodeComments.length} 筆 · 全局共 ${totalCommentsCount} 筆</div>
+          </div>
           <button class="btn-icon btn-accent" style="padding:4px 8px; font-size:11px;" id="btnAddNodeComment">+ 新增意見</button>
         </div>
         <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
-          ${nodeComments.length === 0 ? `<div style="color:var(--text-muted); font-size:12px; padding:16px 0;">目前尚無此節點的審查意見。</div>` : ''}
+          ${nodeComments.length === 0 ? `<div style="color:var(--text-muted); font-size:12px; padding:16px 0;">目前 [${node.name}] 尚無專屬審查意見。</div>` : ''}
           ${nodeComments.map(c => `
             <div class="comment-card ${c.status === 'Pending_AI' ? 'pending' : 'done'}">
               <div class="comment-header">
                 <span>${c.reviewer} · ${c.targetField}</span>
-                <span class="comment-badge ${c.status === 'Implemented' ? 'implemented' : ''}">${c.status}</span>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span class="comment-badge ${c.status === 'Implemented' ? 'implemented' : ''}">${c.status}</span>
+                  <button class="comment-action-btn" title="編輯意見" data-action="edit-comment" data-cid="${c.commentId}">✏️</button>
+                  <button class="comment-action-btn del" title="刪除意見" data-action="del-comment" data-cid="${c.commentId}">🗑️</button>
+                </div>
               </div>
               <div class="comment-body">
                 ${c.proposedChange}
@@ -145,6 +154,14 @@
       if (addBtn) {
         addBtn.onclick = () => this.callbacks.onOpenCommentModal(node.id);
       }
+
+      // 綁定意見編輯與刪除按鈕
+      this.container.querySelectorAll('[data-action="edit-comment"]').forEach(btn => {
+        btn.onclick = () => this.callbacks.onEditComment(btn.getAttribute('data-cid'));
+      });
+      this.container.querySelectorAll('[data-action="del-comment"]').forEach(btn => {
+        btn.onclick = () => this.callbacks.onDeleteComment(btn.getAttribute('data-cid'));
+      });
     }
   }
 

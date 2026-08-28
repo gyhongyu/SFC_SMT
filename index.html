@@ -34,6 +34,8 @@
     <div class="nav-right">
       <button class="btn-icon" id="btnOpenComment">➕ 新增 HQ 審查意見</button>
       <button class="btn-icon btn-accent" id="btnExport">📥 匯出資料庫 JSON</button>
+      <button class="btn-icon" id="btnImport">📤 匯入 JSON</button>
+      <input type="file" id="importFileInput" accept=".json" style="display:none;" />
       <button class="btn-icon" id="btnReset">🔄 重置預設</button>
       <button class="btn-icon" id="themeBtn" title="切換主題">🌙</button>
     </div>
@@ -75,10 +77,11 @@
     </aside>
   </main>
 
-  <!-- [ANCHOR: DOM-MODAL] 新增審查意見彈窗 -->
+  <!-- [ANCHOR: DOM-MODAL] 新增/編輯審查意見彈窗 -->
   <div class="modal-backdrop" id="commentModal">
     <div class="modal-box">
-      <h3 style="margin-bottom:12px; font-size:16px;">➕ 新增 HQ 審查意見 / 修改建議</h3>
+      <h3 style="margin-bottom:12px; font-size:16px;" id="modalTitle">➕ 新增 HQ 審查意見 / 修改建議</h3>
+      <input type="hidden" id="modalCommentId" value="" />
       <div style="display:flex; flex-direction:column; gap:10px;">
         <div>
           <label style="font-size:12px; color:var(--text-muted);">目標節點</label>
